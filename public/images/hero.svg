@@ -1,0 +1,21 @@
+<svg width="1200" height="1400" viewBox="0 0 1200 1400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="1400" fill="#F8F9FA"/>
+  <rect x="82" y="96" width="1036" height="1208" rx="56" fill="#00234B"/>
+  <rect x="152" y="168" width="900" height="1064" rx="44" fill="url(#paint0_linear)"/>
+  <circle cx="934" cy="334" r="162" fill="#FFDEA5" fill-opacity="0.26"/>
+  <circle cx="310" cy="948" r="244" fill="#775A19" fill-opacity="0.25"/>
+  <rect x="248" y="288" width="710" height="360" rx="28" fill="#F3F4F5" fill-opacity="0.92"/>
+  <rect x="248" y="700" width="286" height="236" rx="24" fill="#FFFFFF"/>
+  <rect x="566" y="700" width="392" height="236" rx="24" fill="#FFFFFF" fill-opacity="0.88"/>
+  <rect x="248" y="968" width="710" height="132" rx="24" fill="#FFFFFF" fill-opacity="0.88"/>
+  <text x="248" y="116" fill="#FFDEA5" font-family="Georgia, serif" font-size="44">Camob Residence</text>
+  <text x="248" y="1048" fill="#000E24" font-family="Georgia, serif" font-size="72">Comfort + Convenience</text>
+  <text x="248" y="1106" fill="#43474E" font-family="Arial, sans-serif" font-size="28">Editorial shortlet living in Ogombo, Lekki.</text>
+  <defs>
+    <linearGradient id="paint0_linear" x1="152" y1="168" x2="1052" y2="1232" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F9E6B8"/>
+      <stop offset="0.48" stop-color="#E7EEF7"/>
+      <stop offset="1" stop-color="#D7E3F7"/>
+    </linearGradient>
+  </defs>
+</svg>

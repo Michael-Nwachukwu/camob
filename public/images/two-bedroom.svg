@@ -1,0 +1,16 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" fill="#F8F9FA"/>
+  <rect x="86" y="84" width="1028" height="732" rx="42" fill="#00234B"/>
+  <rect x="148" y="146" width="904" height="608" rx="34" fill="#FFFFFF"/>
+  <rect x="216" y="216" width="420" height="236" rx="24" fill="#F3F4F5"/>
+  <rect x="216" y="488" width="420" height="188" rx="24" fill="#F3F4F5"/>
+  <rect x="674" y="216" width="310" height="460" rx="24" fill="url(#paint0_linear)"/>
+  <circle cx="822" cy="380" r="122" fill="#FFDEA5" fill-opacity="0.35"/>
+  <text x="216" y="760" fill="#FFDEA5" font-family="Georgia, serif" font-size="46">2-Bedroom Executive Suite</text>
+  <defs>
+    <linearGradient id="paint0_linear" x1="674" y1="216" x2="984" y2="676" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E7EEF7"/>
+      <stop offset="1" stop-color="#FFF1D4"/>
+    </linearGradient>
+  </defs>
+</svg>

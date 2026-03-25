@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BookingStatus {
+  DRAFT_HOLD
+  PENDING_PAYMENT
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+  ADMIN_BLOCKED
+  REFUND_PENDING
+  REFUNDED
+}
+
+enum PaymentMethod {
+  PAYSTACK
+  BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  INITIALIZED
+  PAID
+  FAILED
+  PENDING_REVIEW
+}
+
+model ApartmentType {
+  id           String             @id
+  slug         String             @unique
+  name         String
+  shortName    String
+  description  String
+  ratePerNight Int
+  maxGuests    Int
+  bedrooms     Int
+  bathrooms    Int
+  unitsCount   Int
+  heroImage    String
+  amenities    String[]
+  units        Unit[]
+  bookings     Booking[]
+  blocks       BlockedDateRange[]
+  rates        RatePlan[]
+}
+
+model Unit {
+  id              String        @id
+  apartmentTypeId String
+  name            String
+  floorLabel      String
+  apartmentType   ApartmentType @relation(fields: [apartmentTypeId], references: [id])
+  bookings        Booking[]
+}
+
+model Booking {
+  id              String         @id @default(cuid())
+  apartmentTypeId String
+  unitId          String
+  guestFullName   String
+  guestEmail      String
+  guestPhone      String
+  guestCount      Int
+  specialRequests String?
+  checkIn         DateTime
+  checkOut        DateTime
+  status          BookingStatus
+  subtotal        Int
+  serviceCharge   Int
+  total           Int
+  createdAt       DateTime       @default(now())
+  expiresAt       DateTime?
+  apartmentType   ApartmentType  @relation(fields: [apartmentTypeId], references: [id])
+  unit            Unit           @relation(fields: [unitId], references: [id])
+  payments        Payment[]
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  bookingId   String
+  method      PaymentMethod
+  status      PaymentStatus
+  reference   String        @unique
+  amount      Int
+  metadata    Json?
+  createdAt   DateTime      @default(now())
+  booking     Booking       @relation(fields: [bookingId], references: [id])
+}
+
+model BlockedDateRange {
+  id              String        @id @default(cuid())
+  apartmentTypeId String
+  startDate       DateTime
+  endDate         DateTime
+  reason          String
+  apartmentType   ApartmentType @relation(fields: [apartmentTypeId], references: [id])
+}
+
+model RatePlan {
+  id              String        @id @default(cuid())
+  apartmentTypeId String
+  nightlyRate     Int
+  serviceCharge   Int
+  currency        String
+  startsAt        DateTime?
+  endsAt          DateTime?
+  apartmentType   ApartmentType @relation(fields: [apartmentTypeId], references: [id])
+}
+
+model NotificationLog {
+  id         String   @id @default(cuid())
+  channel    String
+  event      String
+  recipient  String
+  payload    Json?
+  createdAt  DateTime @default(now())
+}

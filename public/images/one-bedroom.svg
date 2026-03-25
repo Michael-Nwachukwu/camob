@@ -1,0 +1,18 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" fill="#F4F5F6"/>
+  <rect x="84" y="84" width="1032" height="732" rx="42" fill="#FFFFFF"/>
+  <rect x="156" y="162" width="476" height="430" rx="30" fill="url(#paint0_linear)"/>
+  <rect x="672" y="162" width="372" height="196" rx="24" fill="#F3F4F5"/>
+  <rect x="672" y="396" width="372" height="196" rx="24" fill="#F3F4F5"/>
+  <rect x="156" y="630" width="888" height="110" rx="24" fill="#000E24"/>
+  <circle cx="406" cy="374" r="124" fill="#775A19" fill-opacity="0.2"/>
+  <text x="156" y="714" fill="#FFFFFF" font-family="Georgia, serif" font-size="42">1-Bedroom Urban Sanctuary</text>
+  <text x="674" y="462" fill="#000E24" font-family="Arial, sans-serif" font-size="28">Fast internet</text>
+  <text x="674" y="522" fill="#000E24" font-family="Arial, sans-serif" font-size="28">24/7 power</text>
+  <defs>
+    <linearGradient id="paint0_linear" x1="156" y1="162" x2="632" y2="592" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#DCE7F7"/>
+      <stop offset="1" stop-color="#FFE7BE"/>
+    </linearGradient>
+  </defs>
+</svg>
