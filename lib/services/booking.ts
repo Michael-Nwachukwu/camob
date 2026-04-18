@@ -1,5 +1,22 @@
-import { getApartmentTypeById, createDraftHold, getBookingById, saveBooking, updateBooking } from "@/lib/services/repository";
-import { calculateQuote, findAvailableUnit, isRangeAvailable } from "@/lib/services/availability";
+import {
+  createDraftHold,
+  createDraftHoldAsync,
+  getApartmentTypeById,
+  getBookingById,
+  getBookingByIdAsync,
+  saveBooking,
+  saveBookingAsync,
+  updateBooking,
+  updateBookingAsync
+} from "@/lib/services/repository";
+import {
+  calculateQuote,
+  calculateQuoteAsync,
+  findAvailableUnit,
+  findAvailableUnitAsync,
+  isRangeAvailable,
+  isRangeAvailableAsync
+} from "@/lib/services/availability";
 import type { CreateBookingInput } from "@/lib/types";
 
 export function createBookingHold(input: {
@@ -42,6 +59,47 @@ export function createBookingHold(input: {
   return { hold, quote };
 }
 
+export async function createBookingHoldAsync(input: {
+  apartmentTypeId: CreateBookingInput["apartmentTypeId"];
+  checkIn: string;
+  checkOut: string;
+  guests: number;
+}) {
+  const apartment = getApartmentTypeById(input.apartmentTypeId);
+  if (!apartment) {
+    throw new Error("Apartment type not found");
+  }
+
+  if (input.guests > apartment.maxGuests) {
+    throw new Error("Guest count exceeds unit capacity");
+  }
+
+  if (!(await isRangeAvailableAsync(input.apartmentTypeId, input.checkIn, input.checkOut))) {
+    throw new Error("Selected dates are no longer available");
+  }
+
+  const unit = await findAvailableUnitAsync(input.apartmentTypeId, input.checkIn, input.checkOut);
+  if (!unit) {
+    throw new Error("No unit available for the selected dates");
+  }
+
+  const quote = await calculateQuoteAsync(input.apartmentTypeId, input.checkIn, input.checkOut);
+  const hold = await createDraftHoldAsync({
+    apartmentTypeId: input.apartmentTypeId,
+    unitId: unit.id,
+    checkIn: input.checkIn,
+    checkOut: input.checkOut,
+    guests: input.guests
+  });
+
+  hold.subtotal = quote.subtotal;
+  hold.serviceCharge = quote.serviceCharge;
+  hold.total = quote.total;
+  const savedHold = await saveBookingAsync(hold);
+
+  return { hold: savedHold, quote };
+}
+
 export function finalizeBooking(input: CreateBookingInput & { holdId?: string }) {
   const quote = calculateQuote(input.apartmentTypeId, input.checkIn, input.checkOut);
 
@@ -76,8 +134,56 @@ export function finalizeBooking(input: CreateBookingInput & { holdId?: string })
   };
 }
 
+export async function finalizeBookingAsync(input: CreateBookingInput & { holdId?: string }) {
+  const quote = await calculateQuoteAsync(input.apartmentTypeId, input.checkIn, input.checkOut);
+
+  let booking = input.holdId ? await getBookingByIdAsync(input.holdId) : null;
+  if (!booking) {
+    const holdResult = await createBookingHoldAsync({
+      apartmentTypeId: input.apartmentTypeId,
+      checkIn: input.checkIn,
+      checkOut: input.checkOut,
+      guests: input.guest.guests
+    });
+    booking = holdResult.hold;
+  }
+
+  booking.apartmentTypeId = input.apartmentTypeId;
+  booking.checkIn = input.checkIn;
+  booking.checkOut = input.checkOut;
+  booking.paymentMethod = input.paymentMethod;
+  booking.paymentStatus = input.paymentMethod === "paystack" ? "initialized" : "pending_review";
+  booking.status = input.paymentMethod === "paystack" ? "pending_payment" : "confirmed";
+  booking.guest = input.guest;
+  booking.subtotal = quote.subtotal;
+  booking.serviceCharge = quote.serviceCharge;
+  booking.total = quote.total;
+  booking.paymentReference = `CAMOB_${Date.now()}`;
+
+  const savedBooking = await saveBookingAsync(booking);
+
+  return {
+    booking: savedBooking,
+    quote
+  };
+}
+
 export function confirmBookingPayment(bookingId: string, reference: string) {
   const booking = updateBooking(bookingId, {
+    status: "confirmed",
+    paymentStatus: "paid",
+    paymentReference: reference
+  });
+
+  if (!booking) {
+    throw new Error("Booking not found");
+  }
+
+  return booking;
+}
+
+export async function confirmBookingPaymentAsync(bookingId: string, reference: string) {
+  const booking = await updateBookingAsync(bookingId, {
     status: "confirmed",
     paymentStatus: "paid",
     paymentReference: reference

@@ -1,10 +1,10 @@
 import { AdminStatCard } from "@/components/admin/admin-stat-card";
-import { getAdminSummary, getBookings } from "@/lib/services/repository";
+import { getAdminSummaryAsync, getBookingsAsync } from "@/lib/services/repository";
 import { formatCurrency } from "@/lib/utils";
 
-export default function Page() {
-  const summary = getAdminSummary();
-  const recentBookings = getBookings().slice(0, 5);
+export default async function Page() {
+  const [summary, bookings] = await Promise.all([getAdminSummaryAsync(), getBookingsAsync()]);
+  const recentBookings = bookings.slice(0, 5);
 
   return (
     <div className="space-y-8">

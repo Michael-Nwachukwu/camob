@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getMonthAvailability } from "@/lib/services/availability";
+import { getMonthAvailabilityAsync } from "@/lib/services/availability";
 import { availabilityQuerySchema } from "@/lib/validators/booking";
 
 export async function GET(request: Request) {
@@ -13,6 +13,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid apartment type." }, { status: 400 });
   }
 
-  const days = getMonthAvailability(parsed.data.apartmentTypeId, parsed.data.month);
+  const days = await getMonthAvailabilityAsync(parsed.data.apartmentTypeId, parsed.data.month);
   return NextResponse.json({ days });
 }

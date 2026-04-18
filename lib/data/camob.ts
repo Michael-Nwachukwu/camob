@@ -97,8 +97,20 @@ export const units: Unit[] = [
 ];
 
 export const ratePlans: RatePlan[] = [
-  { apartmentTypeId: "one-bedroom", nightlyRate: 75000, serviceCharge: 15000, currency: "NGN" },
-  { apartmentTypeId: "two-bedroom", nightlyRate: 120000, serviceCharge: 15000, currency: "NGN" }
+  {
+    id: "rate-one-bedroom-base",
+    apartmentTypeId: "one-bedroom",
+    nightlyRate: 75000,
+    serviceCharge: 15000,
+    currency: "NGN"
+  },
+  {
+    id: "rate-two-bedroom-base",
+    apartmentTypeId: "two-bedroom",
+    nightlyRate: 120000,
+    serviceCharge: 15000,
+    currency: "NGN"
+  }
 ];
 
 export const attractions: Attraction[] = [

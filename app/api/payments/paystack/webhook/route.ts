@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { confirmBookingPayment } from "@/lib/services/booking";
-import { getBookingById } from "@/lib/services/repository";
+import { confirmBookingPaymentAsync } from "@/lib/services/booking";
+import { getBookingByIdAsync } from "@/lib/services/repository";
 import { sendBookingNotification } from "@/lib/services/notifications";
 import { verifyPaystackWebhook } from "@/lib/services/payments";
 import type { PaystackWebhookEvent } from "@/lib/types";
@@ -19,12 +19,16 @@ export async function POST(request: Request) {
   }
 
   const bookingId = String(payload.data.metadata?.bookingId ?? "");
-  const booking = getBookingById(bookingId);
+  const booking = await getBookingByIdAsync(bookingId);
   if (!booking) {
     return NextResponse.json({ error: "Booking not found." }, { status: 404 });
   }
 
-  const confirmed = confirmBookingPayment(booking.id, payload.data.reference);
+  if (booking.paymentStatus === "paid" && booking.paymentReference === payload.data.reference) {
+    return NextResponse.json({ ok: true, idempotent: true });
+  }
+
+  const confirmed = await confirmBookingPaymentAsync(booking.id, payload.data.reference);
   await sendBookingNotification({
     event: "payment_confirmed",
     guestEmail: confirmed.guest.email,

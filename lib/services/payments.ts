@@ -1,9 +1,9 @@
 import crypto from "node:crypto";
 import { env } from "@/lib/env";
-import { getBookingById } from "@/lib/services/repository";
+import { getBookingByIdAsync } from "@/lib/services/repository";
 
 export async function initializePaystackPayment(bookingId: string, email: string) {
-  const booking = getBookingById(bookingId);
+  const booking = await getBookingByIdAsync(bookingId);
   if (!booking) {
     throw new Error("Booking not found");
   }
@@ -47,10 +47,12 @@ export async function initializePaystackPayment(bookingId: string, email: string
 }
 
 export function verifyPaystackWebhook(body: string, signature: string | null) {
-  if (!env.paystackWebhookSecret || !signature) {
+  const secret = env.paystackWebhookSecret ?? env.paystackSecretKey;
+
+  if (!secret || !signature) {
     return false;
   }
 
-  const hash = crypto.createHmac("sha512", env.paystackWebhookSecret).update(body).digest("hex");
+  const hash = crypto.createHmac("sha512", secret).update(body).digest("hex");
   return hash === signature;
 }

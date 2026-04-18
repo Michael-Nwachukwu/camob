@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateRate } from "@/lib/services/repository";
+import { updateRateAsync } from "@/lib/services/repository";
 import { rateSchema } from "@/lib/validators/booking";
 
 export async function POST(request: Request) {
@@ -10,6 +10,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid rate payload." }, { status: 400 });
   }
 
-  const rate = updateRate(parsed.data.apartmentTypeId, parsed.data.nightlyRate, parsed.data.serviceCharge);
+  const rate = await updateRateAsync(parsed.data.apartmentTypeId, parsed.data.nightlyRate, parsed.data.serviceCharge);
   return NextResponse.json({ rate });
 }

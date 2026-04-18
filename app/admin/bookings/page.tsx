@@ -1,8 +1,15 @@
-import { getApartmentTypeById, getBookings, getUnits, updateBooking } from "@/lib/services/repository";
+import { revalidatePath } from "next/cache";
+import {
+  getApartmentTypeById,
+  getBookingsAsync,
+  getUnits,
+  updateBookingAsync
+} from "@/lib/services/repository";
+import type { BookingStatus } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 
-export default function Page() {
-  const bookings = getBookings();
+export default async function Page() {
+  const bookings = await getBookingsAsync();
 
   return (
     <div className="rounded-[2rem] bg-white p-8 shadow-ambient">
@@ -12,8 +19,10 @@ export default function Page() {
           action={async (formData) => {
             "use server";
             const id = String(formData.get("id"));
-            const status = String(formData.get("status"));
-            updateBooking(id, { status: status as never });
+            const status = String(formData.get("status")) as BookingStatus;
+            await updateBookingAsync(id, { status });
+            revalidatePath("/admin");
+            revalidatePath("/admin/bookings");
           }}
           className="flex items-center gap-3"
         >

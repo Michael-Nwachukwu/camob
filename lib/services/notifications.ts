@@ -1,5 +1,30 @@
+import type { Prisma } from "@prisma/client";
 import { env } from "@/lib/env";
+import { prisma } from "@/lib/prisma";
 import { getSiteCopy } from "@/lib/services/repository";
+
+async function logNotification(params: {
+  event: "booking_created" | "payment_confirmed";
+  recipients: string[];
+  payload: Record<string, unknown>;
+}) {
+  if (!env.databaseUrl || params.recipients.length === 0) {
+    return;
+  }
+
+  try {
+    await prisma.notificationLog.createMany({
+      data: params.recipients.map((recipient) => ({
+        channel: "email",
+        event: params.event,
+        recipient,
+        payload: params.payload as Prisma.InputJsonValue
+      }))
+    });
+  } catch {
+    return;
+  }
+}
 
 export async function sendBookingNotification(params: {
   event: "booking_created" | "payment_confirmed";
@@ -7,7 +32,19 @@ export async function sendBookingNotification(params: {
   guestName: string;
   bookingId: string;
 }) {
+  const recipients = [params.guestEmail, env.bookingAlertEmail].filter(Boolean);
+
   if (!env.resendApiKey) {
+    await logNotification({
+      event: params.event,
+      recipients,
+      payload: {
+        bookingId: params.bookingId,
+        guestName: params.guestName,
+        skipped: true
+      }
+    });
+
     return { ok: false, skipped: true };
   }
 
@@ -15,7 +52,7 @@ export async function sendBookingNotification(params: {
 
   const body = {
     from: env.notificationFromEmail,
-    to: [params.guestEmail, env.bookingAlertEmail],
+    to: recipients,
     subject:
       params.event === "payment_confirmed"
         ? `Camob Residence booking confirmed: ${params.bookingId}`
@@ -37,6 +74,16 @@ export async function sendBookingNotification(params: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify(body)
+  });
+
+  await logNotification({
+    event: params.event,
+    recipients,
+    payload: {
+      bookingId: params.bookingId,
+      guestName: params.guestName,
+      delivered: response.ok
+    }
   });
 
   return { ok: response.ok, skipped: false };

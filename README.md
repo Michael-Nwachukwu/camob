@@ -13,10 +13,26 @@ Camob Residence is a Next.js shortlet booking platform for the Camob apartments 
 
 1. Copy `.env.example` to `.env`.
 2. Install dependencies with `npm install`.
-3. If you have PostgreSQL ready, run `npm run db:push` and `npm run db:seed`.
+3. If you have PostgreSQL ready, run `npm run db:generate`, `npm run db:migrate:dev -- --name init`, and `npm run db:seed`.
 4. Start the app with `npm run dev`.
 
 The app ships with a seeded in-memory fallback so the public UI and admin UI can still render even before a database is connected.
+
+## Database workflow
+
+Use Prisma migrations for all real schema changes.
+
+- `npm run db:migrate:dev -- --name <change-name>` creates and applies a local migration
+- `npm run db:migrate:deploy` applies checked-in migrations in staging/production
+- `npm run db:migrate:status` shows whether an environment is up to date
+- `npm run db:seed` seeds only stable reference data
+- `npm run db:seed:demo` seeds the reference data plus demo bookings for local QA
+
+The seed script is idempotent, so it can be rerun safely. Demo bookings are opt-in and controlled by `SEED_DEMO_DATA=true`.
+
+The first time you create a migration, Prisma will generate the `prisma/migrations` folder for this repository.
+
+Detailed local, staging, and production database commands live in [docs/prisma-workflow.md](/Users/michaelnwachukwu/Documents/works/camob/docs/prisma-workflow.md).
 
 ## Admin access
 

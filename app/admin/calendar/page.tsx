@@ -1,19 +1,21 @@
-import { addBlackout, getBlackouts } from "@/lib/services/repository";
+import { revalidatePath } from "next/cache";
+import { addBlackoutAsync, getBlackoutsAsync } from "@/lib/services/repository";
 
-export default function Page() {
-  const blackouts = getBlackouts();
+export default async function Page() {
+  const blackouts = await getBlackoutsAsync();
 
   return (
     <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
       <form
         action={async (formData) => {
           "use server";
-          addBlackout({
+          await addBlackoutAsync({
             apartmentTypeId: String(formData.get("apartmentTypeId")) as "one-bedroom" | "two-bedroom",
             startDate: String(formData.get("startDate")),
             endDate: String(formData.get("endDate")),
             reason: String(formData.get("reason"))
           });
+          revalidatePath("/admin/calendar");
         }}
         className="rounded-[2rem] bg-white p-8 shadow-ambient"
       >

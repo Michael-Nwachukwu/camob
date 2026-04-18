@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { finalizeBooking } from "@/lib/services/booking";
+import { finalizeBookingAsync } from "@/lib/services/booking";
 import { sendBookingNotification } from "@/lib/services/notifications";
 import { bookingSchema } from "@/lib/validators/booking";
 
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = finalizeBooking(parsed.data);
+    const result = await finalizeBookingAsync(parsed.data);
     await sendBookingNotification({
       event: "booking_created",
       guestEmail: result.booking.guest.email,

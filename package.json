@@ -10,8 +10,14 @@
     "typecheck": "next typegen && tsc --noEmit -p tsconfig.typecheck.json",
     "test": "vitest run",
     "db:generate": "prisma generate",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:status": "prisma migrate status",
+    "db:reset": "prisma migrate reset",
+    "db:studio": "prisma studio",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:seed:demo": "SEED_DEMO_DATA=true tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.4.1",

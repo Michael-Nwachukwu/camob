@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createBookingHold } from "@/lib/services/booking";
+import { createBookingHoldAsync } from "@/lib/services/booking";
 import { bookingHoldSchema } from "@/lib/validators/booking";
 
 export async function POST(request: Request) {
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = createBookingHold(parsed.data);
+    const result = await createBookingHoldAsync(parsed.data);
     return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to create hold." }, { status: 400 });

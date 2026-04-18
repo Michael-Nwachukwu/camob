@@ -1,13 +1,24 @@
 import { apartmentTypes } from "@/lib/data/camob";
-import { getRate, getUnits, updateRate } from "@/lib/services/repository";
+import { revalidatePath } from "next/cache";
+import { getRateAsync, getUnits, updateRateAsync } from "@/lib/services/repository";
 import { formatCurrency } from "@/lib/utils";
 
-export default function Page() {
+export default async function Page() {
+  const rates = await Promise.all(
+    apartmentTypes.map(async (apartment) => ({
+      apartmentId: apartment.id,
+      rate: await getRateAsync(apartment.id)
+    }))
+  );
+
   return (
     <div className="space-y-8">
       <section className="grid gap-6 lg:grid-cols-2">
         {apartmentTypes.map((apartment) => {
-          const rate = getRate(apartment.id);
+          const rate = rates.find((entry) => entry.apartmentId === apartment.id)?.rate ?? {
+            nightlyRate: apartment.ratePerNight,
+            serviceCharge: 0
+          };
 
           return (
             <div key={apartment.id} className="rounded-[2rem] bg-white p-8 shadow-ambient">
@@ -30,11 +41,13 @@ export default function Page() {
       <form
         action={async (formData) => {
           "use server";
-          updateRate(
+          await updateRateAsync(
             String(formData.get("apartmentTypeId")) as "one-bedroom" | "two-bedroom",
             Number(formData.get("nightlyRate")),
             Number(formData.get("serviceCharge"))
           );
+          revalidatePath("/admin/units");
+          revalidatePath("/book");
         }}
         className="rounded-[2rem] bg-white p-8 shadow-ambient"
       >

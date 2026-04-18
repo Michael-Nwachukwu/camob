@@ -78,6 +78,7 @@ export interface BlockedDateRange {
 }
 
 export interface RatePlan {
+  id?: string;
   apartmentTypeId: ApartmentTypeId;
   nightlyRate: number;
   serviceCharge: number;

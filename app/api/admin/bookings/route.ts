@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getBookings } from "@/lib/services/repository";
+import { getBookingsAsync } from "@/lib/services/repository";
 
 export async function GET() {
-  return NextResponse.json({ bookings: getBookings() });
+  return NextResponse.json({ bookings: await getBookingsAsync() });
 }
