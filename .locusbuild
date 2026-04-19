@@ -3,7 +3,7 @@
     "web": {
       "path": ".",
       "port": 8080,
-      "healthCheck": "/api/healthz"
+      "healthCheck": "/api/health"
     }
   }
 }
