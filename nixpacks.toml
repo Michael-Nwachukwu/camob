@@ -1,0 +1,5 @@
+[phases.build]
+cacheDirectories = [
+  "/app/.next/cache",
+  "/app/node_modules/.cache"
+]
