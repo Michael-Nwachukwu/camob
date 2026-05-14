@@ -4,6 +4,7 @@
 
 :root {
   color-scheme: light;
+  --tracking-display: -1.2px;
 }
 
 * {
@@ -18,10 +19,13 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(255, 222, 165, 0.18), transparent 30%),
-    radial-gradient(circle at right center, rgba(0, 35, 75, 0.08), transparent 28%),
-    #f8f9fa;
-  color: #191c1d;
+    radial-gradient(circle at 12% -10%, rgba(255, 195, 120, 0.28), transparent 38%),
+    radial-gradient(circle at 92% 6%, rgba(230, 0, 35, 0.07), transparent 32%),
+    radial-gradient(circle at 50% 110%, rgba(196, 158, 90, 0.18), transparent 42%),
+    #fbfbf9;
+  color: #262622;
+  font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
@@ -29,16 +33,72 @@ a {
   text-decoration: none;
 }
 
-.glass-panel {
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(10px);
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+  cursor: pointer;
 }
 
-.selection-ring {
-  box-shadow: 0 0 0 2px rgba(119, 90, 25, 0.28);
+.tracking-display { letter-spacing: -1.2px; }
+.tracking-display-lg { letter-spacing: -0.8px; }
+
+/* Masonry-like column flow for image grids */
+.masonry {
+  column-count: 1;
+  column-gap: 8px;
+}
+@media (min-width: 640px) { .masonry { column-count: 2; } }
+@media (min-width: 900px) { .masonry { column-count: 2; } }
+@media (min-width: 1200px) { .masonry { column-count: 3; } }
+.masonry > * {
+  break-inside: avoid;
+  margin-bottom: 8px;
 }
 
-.editorial-grid {
-  display: grid;
-  gap: 1.5rem;
+.modal-scrim { background: rgba(38, 38, 34, 0.5); }
+
+/* Hand-drawn underline accent for headlines */
+.brush-underline {
+  background-image: linear-gradient(transparent 70%, rgba(230, 0, 35, 0.18) 70%);
+  background-size: 100% 100%;
+  padding: 0 0.1em;
+}
+
+/* Polaroid card frame */
+.polaroid {
+  background: #fffefa;
+  padding: 10px 10px 36px;
+  box-shadow: 0 20px 40px rgba(38, 38, 34, 0.14);
+}
+
+/* Marquee gradient masks at the edges */
+.marquee-mask {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+/* Continuous sliding marquee — self-contained so it doesn't depend on Tailwind config */
+@keyframes marquee-slide {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  white-space: nowrap;
+  will-change: transform;
+  animation: marquee-slide 90s linear infinite;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation-duration: 240s; }
+}
+
+/* Subtle paper grain for hospitality warmth */
+.paper {
+  background-color: #fbfbf9;
+  background-image:
+    radial-gradient(rgba(38, 38, 34, 0.035) 1px, transparent 1px);
+  background-size: 18px 18px;
 }

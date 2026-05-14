@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CheckCircle2 } from "lucide-react";
 
 export default async function Page({
   searchParams
@@ -8,22 +9,39 @@ export default async function Page({
   const params = await searchParams;
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-24">
-      <div className="rounded-[2rem] bg-white p-10 shadow-ambient">
-        <p className="text-xs font-bold uppercase tracking-[0.3em] text-secondary">Booking Success</p>
-        <h1 className="mt-4 font-serif text-5xl text-primary">Your reservation has been received.</h1>
-        <p className="mt-5 text-lg leading-8 text-muted">
-          Reference: <span className="font-semibold text-primary">{params.bookingId ?? "pending"}</span>. If you chose
-          Paystack, final confirmation depends on payment verification. If you chose bank transfer, staff will review and
-          contact you.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-4">
-          <Link href="/" className="rounded-full bg-silk px-6 py-3 font-semibold text-white">
-            Back to home
-          </Link>
-          <Link href="/explore" className="rounded-full border border-outline px-6 py-3 font-semibold text-primary">
-            Explore Lekki
-          </Link>
+    <div className="bg-surface-soft pb-20 pt-24 md:pt-32">
+      <div className="mx-auto max-w-3xl px-4 md:px-6">
+        <div className="rounded-lg bg-canvas p-8 md:p-12">
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-success-pale text-success">
+            <CheckCircle2 className="h-6 w-6" />
+          </span>
+          <p className="mt-6 font-serif text-sm italic text-mute">— booking received</p>
+          <h1 className="mt-3 font-serif text-[36px] leading-[1.05] text-ink md:text-[56px]" style={{ letterSpacing: "-1.2px" }}>
+            We've got <span className="italic text-brand">your reservation</span>.
+          </h1>
+          <p className="mt-5 text-base leading-[1.6] text-body md:text-lg">
+            Reference: <span className="font-semibold text-ink">{params.bookingId ?? "pending"}</span>.
+          </p>
+          <p className="mt-3 text-base leading-[1.6] text-body">
+            If you paid with Paystack, the confirmation lands the moment the
+            webhook fires — usually seconds. For bank transfers, we'll review and
+            email you back within a few hours.
+          </p>
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              href="/"
+              className="inline-flex h-12 items-center rounded-md bg-brand px-5 text-sm font-bold text-white hover:bg-brand-pressed"
+            >
+              Back to the residence
+            </Link>
+            <Link
+              href="/explore"
+              className="inline-flex h-12 items-center rounded-md bg-surface-card px-5 text-sm font-bold text-ink hover:bg-surface-deep"
+            >
+              Plan around Lekki
+            </Link>
+          </div>
         </div>
       </div>
     </div>

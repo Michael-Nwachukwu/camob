@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Camob Residence | Editorial Shortlet Living in Lekki",
+  title: "Camob Residence — Maisonettes near Charterhouse Lagos",
   description:
-    "Luxury shortlet booking for 1-bedroom and 2-bedroom apartments in Ogombo Town, Lekki Scheme 2, Lagos.",
+    "Two self-contained maisonettes in Ogombo, Lekki — a minute from Charterhouse Lagos, fifteen from VI. Private entrance, 24/7 power, fast Wi-Fi, gated compound.",
   metadataBase: new URL("https://camob-residence.vercel.app"),
   openGraph: {
     title: "Camob Residence",
-    description: "Shortlet booking web app for Camob Residence in Lekki, Lagos.",
+    description: "Two maisonettes a minute from Charterhouse Lagos.",
     type: "website"
   }
 };
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="font-sans text-ink antialiased">{children}</body>
+      <body className="font-sans text-ink antialiased bg-surface-soft">{children}</body>
     </html>
   );
 }

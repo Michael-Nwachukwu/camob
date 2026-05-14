@@ -1,230 +1,281 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, Sparkles, Wifi, Zap } from "lucide-react";
+import { ArrowRight, Plug, Wifi, ShieldCheck, KeyRound, Snowflake, Tv } from "lucide-react";
 import { apartmentTypes, attractions, faqItems, siteCopy } from "@/lib/data/camob";
 import { formatCurrency } from "@/lib/utils";
-import { SectionHeading } from "@/components/ui/section-heading";
+import { HomeHero } from "@/components/sections/home-hero";
 import { HomeQuickBooking } from "@/components/sections/home-quick-booking";
+import { Reveal, TiltHover } from "@/components/ui/reveal";
 
 export function HomePage() {
   return (
-    <div className="pb-20">
-      <section className="relative flex min-h-[850px] items-center overflow-hidden">
-        <div className="absolute inset-0">
-          <Image
-            src={siteCopy.heroImage}
-            alt="Camob Residence living area"
-            fill
-            priority
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-primary/30" />
-          <div className="absolute inset-0 bg-gradient-to-t from-primary/70 via-primary/20 to-transparent" />
-        </div>
-
-        <div className="relative mx-auto max-w-5xl px-6 py-24 text-center text-white">
-          <div className="inline-flex items-center gap-3 rounded-full bg-white/15 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-secondary-fixed backdrop-blur">
-            Editorial shortlet living
-          </div>
-          <h1 className="mt-8 font-serif text-5xl leading-[1.02] md:text-7xl">Experience Comfort and Convenience</h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/90">
-            Beautifully designed short-stay apartments in Lekki, Lagos.
-          </p>
-        </div>
-      </section>
+    <div className="pb-16">
+      <HomeHero />
 
       <HomeQuickBooking />
 
-      <section className="mx-auto max-w-7xl px-6 pb-16 pt-20">
-        <div className="grid gap-12 xl:gap-12 lg:grid-cols-[minmax(0,1.02fr)_minmax(0,0.98fr)] lg:items-center">
-          <div>
-            <SectionHeading
-              eyebrow="Residence"
-              title="Experience comfort, calm, and beautifully designed stays in Lekki."
-              description={siteCopy.description}
-            />
-            <div className="mt-8 flex flex-wrap gap-4">
-              <Link href="/book" className="rounded-full bg-silk px-6 py-3 font-semibold text-white shadow-lg shadow-primary/20">
-                Check Availability
-              </Link>
-              <Link
-                href="/explore"
-                className="rounded-full border border-outline bg-white px-6 py-3 font-semibold text-primary"
-              >
-                Explore the Neighborhood
-              </Link>
+      {/* What you actually get */}
+      <section className="mx-auto mt-24 max-w-7xl px-4 md:px-6">
+        <Reveal>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="font-serif text-sm italic text-mute">— the things that should already work</p>
+              <h2 className="mt-2 max-w-2xl font-serif text-[34px] leading-[1.1] text-ink md:text-[48px]" style={{ letterSpacing: "-1px" }}>
+                The basics, working.
+              </h2>
             </div>
-            <div className="mt-10 grid gap-4 sm:grid-cols-3">
-              {[
-                { icon: Zap, label: "24/7 Power Supply" },
-                { icon: Wifi, label: "High-Speed Internet" },
-                { icon: ShieldCheck, label: "Secure Peaceful Setting" }
-              ].map((item) => (
-                <div key={item.label} className="rounded-3xl bg-white/90 p-5 shadow-ambient">
-                  <item.icon className="h-5 w-5 text-secondary" />
-                  <p className="mt-3 text-sm font-semibold text-primary">{item.label}</p>
+            <p className="max-w-sm text-sm text-body md:text-base">
+              No flickering lights at 11pm. No "is the wifi working today?". This is the boring foundation a good stay actually needs.
+            </p>
+          </div>
+        </Reveal>
+
+        <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            { icon: Plug, label: "24/7 power", note: "Generator + inverter handle the grid's mood swings." },
+            { icon: Wifi, label: "Fast Wi-Fi", note: "Backed up so the meeting doesn't drop." },
+            { icon: KeyRound, label: "Private entrance", note: "Your own front door from the street." },
+            { icon: Snowflake, label: "Air conditioning", note: "Every room. Even on the worst Lagos afternoons." },
+            { icon: Tv, label: "Smart TV", note: "Netflix, YouTube, DSTV Premium — all signed in." },
+            { icon: ShieldCheck, label: "Gated + CCTV", note: "Compound watched, cars parked off the street." }
+          ].map((f, i) => (
+            <Reveal key={f.label} delay={i * 0.06}>
+              <TiltHover rotate={0.6}>
+                <div className="rounded-md bg-canvas p-6 shadow-ambient transition-shadow hover:shadow-scrim">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-surface-card text-ink">
+                    <f.icon className="h-5 w-5 text-brand" />
+                  </span>
+                  <p className="mt-5 font-serif text-xl text-ink">{f.label}</p>
+                  <p className="mt-1.5 text-sm leading-[1.6] text-mute">{f.note}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="relative min-h-[560px] overflow-hidden rounded-[2rem] shadow-ambient">
-              <Image src={apartmentTypes[1].gallery[0]} alt="Camob Residence apartment preview" fill className="object-cover" />
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-primary/85 to-transparent p-8 text-white">
-                <p className="text-xs font-bold uppercase tracking-[0.3em] text-secondary-fixed">Featured Stay</p>
-                <h3 className="mt-3 font-serif text-3xl">2-Bedroom Executive Suite</h3>
-                <p className="mt-3 max-w-md text-sm leading-7 text-white/80">
-                  Spacious interiors, modern finishes, and a stay rhythm that works for both families and premium work trips.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-6">
-              <div className="rounded-[2rem] bg-white p-8 shadow-ambient">
-                <p className="text-xs font-bold uppercase tracking-[0.3em] text-secondary">Location</p>
-                <h3 className="mt-3 font-serif text-3xl text-primary">Ogombo, Lekki Scheme 2</h3>
-                <p className="mt-4 text-sm leading-7 text-muted">
-                  1 minute from British Charter School and around 20 minutes to Victoria Island via the coastal road.
-                </p>
-                <p className="mt-8 text-sm font-semibold text-primary">Peaceful residential access</p>
-              </div>
-              <div className="rounded-[2rem] bg-surface-low p-8">
-                <p className="text-xs font-bold uppercase tracking-[0.3em] text-secondary">Booking</p>
-                <h3 className="mt-3 font-serif text-3xl text-primary">Instant holds, cleaner checkout</h3>
-                <p className="mt-4 text-sm leading-7 text-muted">
-                  Choose your unit type, see live date availability, hold your dates for 15 minutes, then pay with Paystack or reserve by transfer.
-                </p>
-              </div>
-            </div>
-          </div>
+              </TiltHover>
+            </Reveal>
+          ))}
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-14">
-        <SectionHeading
-          eyebrow="The Collection"
-          title="Two apartment categories, four physical units, one polished stay standard."
-          description="Each apartment type has two real units behind it, so availability is handled with proper inventory instead of a fake brochure calendar."
-        />
-        <div className="mt-10 grid gap-8 lg:grid-cols-2">
-          {apartmentTypes.map((apartment) => (
-            <article key={apartment.id} className="overflow-hidden rounded-[2rem] bg-white shadow-ambient">
-              <div className="relative h-80">
-                <Image src={apartment.heroImage} alt={apartment.name} fill className="object-cover" />
-              </div>
-              <div className="p-8">
-                <div className="flex items-start justify-between gap-6">
-                  <div>
-                    <h3 className="font-serif text-3xl text-primary">{apartment.name}</h3>
-                    <p className="mt-3 max-w-xl text-sm leading-7 text-muted">{apartment.description}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-semibold text-secondary">{formatCurrency(apartment.ratePerNight)}</p>
-                    <p className="text-xs uppercase tracking-[0.3em] text-muted">Per night</p>
-                  </div>
-                </div>
-                <div className="mt-6 flex flex-wrap gap-3">
-                  {apartment.amenities.slice(0, 4).map((amenity) => (
-                    <span key={amenity} className="rounded-full bg-surface-low px-4 py-2 text-xs font-semibold text-primary">
-                      {amenity}
+      {/* The two maisonettes */}
+      <section id="stays" className="mx-auto mt-24 max-w-7xl px-4 md:px-6">
+        <Reveal>
+          <p className="font-serif text-sm italic text-mute">— what's on offer</p>
+          <h2 className="mt-2 max-w-3xl font-serif text-[34px] leading-[1.05] text-ink md:text-[52px]" style={{ letterSpacing: "-1.2px" }}>
+            Same compound. <span className="italic text-brand">Two</span> layouts.
+          </h2>
+          <p className="mt-4 max-w-2xl text-base leading-[1.6] text-body md:text-lg">{siteCopy.longPitch}</p>
+        </Reveal>
+
+        <div className="mt-12 grid gap-8 lg:grid-cols-2">
+          {apartmentTypes.map((apartment, i) => (
+            <Reveal key={apartment.id} delay={i * 0.1}>
+              <TiltHover rotate={i % 2 === 0 ? 0.6 : -0.6}>
+                <article className="overflow-hidden rounded-md bg-canvas shadow-ambient">
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    <Image
+                      src={apartment.heroImage}
+                      alt={apartment.name}
+                      fill
+                      className="object-cover transition-transform duration-[800ms] ease-out hover:scale-105"
+                      sizes="(min-width:1024px) 50vw, 100vw"
+                    />
+                    <span className="absolute left-3 top-3 rounded-full bg-canvas px-3 py-1.5 text-xs font-bold text-ink shadow-ambient">
+                      {apartment.bedrooms} bed · sleeps {apartment.maxGuests}
                     </span>
-                  ))}
-                </div>
-                <div className="mt-6 flex gap-4">
-                  <Link href={`/apartments/${apartment.slug}`} className="font-semibold text-primary underline decoration-secondary underline-offset-4">
-                    View apartment details
-                  </Link>
-                  <Link href={`/book?apartmentTypeId=${apartment.id}`} className="font-semibold text-secondary">
-                    Book this unit
-                  </Link>
-                </div>
-              </div>
-            </article>
+                    <span className="absolute right-3 top-3 rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-white shadow-ambient">
+                      {formatCurrency(apartment.ratePerNight)} / night
+                    </span>
+                  </div>
+                  <div className="p-7 md:p-8">
+                    <h3 className="font-serif text-2xl text-ink md:text-3xl" style={{ letterSpacing: "-0.4px" }}>
+                      {apartment.name}
+                    </h3>
+                    <p className="mt-3 text-sm leading-[1.7] text-body md:text-base">{apartment.description}</p>
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      {apartment.amenities.slice(0, 5).map((a) => (
+                        <span
+                          key={a}
+                          className="rounded-full bg-surface-card px-3 py-1.5 text-xs font-semibold text-ink"
+                        >
+                          {a}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="mt-6 flex items-center gap-4 text-sm font-semibold">
+                      <Link
+                        href={`/apartments/${apartment.slug}`}
+                        className="inline-flex items-center gap-1 font-serif italic text-ink-soft underline decoration-brand decoration-2 underline-offset-4"
+                      >
+                        See the rooms
+                      </Link>
+                      <Link
+                        href={`/book?apartmentTypeId=${apartment.id}`}
+                        className="group inline-flex items-center gap-1 text-brand"
+                      >
+                        Check dates
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              </TiltHover>
+            </Reveal>
           ))}
         </div>
       </section>
 
-      <section className="bg-surface-low py-16">
-        <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-          <SectionHeading
-            eyebrow="The Neighborhood"
-            title="A short stay that puts Lagos within easy reach."
-            description="Beaches, shopping, nature, schools, and leisure destinations sit around the residence without sacrificing the calmer pace of Ogombo."
-          />
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-4">
-              <div className="relative h-64 overflow-hidden rounded-[1.5rem] shadow-ambient">
-                <Image src={siteCopy.neighborhoodImages[0]} alt="Landmark Beach" fill className="object-cover" />
+      {/* Discounts ribbon */}
+      <section className="mx-auto mt-24 max-w-7xl px-4 md:px-6">
+        <Reveal>
+          <div className="relative overflow-hidden rounded-lg bg-canvas p-8 shadow-ambient md:p-12">
+            <div className="absolute -right-12 -top-12 h-48 w-48 animate-spin-slow rounded-full bg-brand/10" aria-hidden />
+            <div className="relative md:flex md:items-center md:justify-between">
+              <div>
+                <p className="font-serif text-sm italic text-mute">— the longer you stay</p>
+                <h3 className="mt-2 max-w-md font-serif text-3xl text-ink md:text-4xl" style={{ letterSpacing: "-0.6px" }}>
+                  Stay longer. Pay <span className="italic text-brand">less</span>.
+                </h3>
+                <p className="mt-3 max-w-md text-sm leading-[1.6] text-body md:text-base">
+                  Discounts apply at checkout. No codes, no fine print.
+                </p>
               </div>
-              <div className="relative h-80 overflow-hidden rounded-[1.5rem] shadow-ambient">
-                <Image src={siteCopy.neighborhoodImages[1]} alt="Lekki Conservation Centre" fill className="object-cover" />
-              </div>
-            </div>
-            <div className="pt-12">
-              <div className="relative h-full min-h-[28rem] overflow-hidden rounded-[1.5rem] shadow-ambient">
-                <Image src={siteCopy.neighborhoodImages[2]} alt="Lagos nightlife" fill className="object-cover" />
+              <div className="mt-6 flex flex-wrap gap-3 md:mt-0">
+                {siteCopy.stayPolicies.discounts.map((d) => (
+                  <div key={d.stay} className="animate-float rounded-lg bg-surface-card px-5 py-4 shadow-ambient" style={{ animationDuration: "8s" }}>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-mute">{d.stay}</p>
+                    <p className="mt-1 font-serif text-2xl text-ink">{d.off}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
+        </Reveal>
+      </section>
+
+      {/* Neighbourhood masonry */}
+      <section className="mx-auto mt-24 max-w-7xl px-4 md:px-6">
+        <Reveal>
+          <div className="flex items-end justify-between gap-6">
+            <div>
+              <p className="font-serif text-sm italic text-mute">— around here</p>
+              <h2 className="mt-2 max-w-2xl font-serif text-[34px] leading-[1.05] text-ink md:text-[52px]" style={{ letterSpacing: "-1.2px" }}>
+                Beaches, the school run, and the expressway — all <span className="italic">short</span>.
+              </h2>
+            </div>
+            <Link href="/explore" className="hidden md:inline-flex items-center gap-1 font-serif italic text-ink-soft">
+              All the notes <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </Reveal>
+
+        <div className="masonry mt-10">
+          {attractions.slice(0, 6).map((a, i) => (
+            <Reveal key={a.id} delay={i * 0.05}>
+              <TiltHover rotate={i % 2 === 0 ? 0.8 : -0.8}>
+                <div className="overflow-hidden rounded-md bg-canvas shadow-ambient">
+                  <div className="relative">
+                    <Image
+                      src={a.image}
+                      alt={a.name}
+                      width={600}
+                      height={a.category === "Beach" ? 800 : 600}
+                      className="h-auto w-full object-cover"
+                    />
+                    <span className="absolute left-3 top-3 rounded-full bg-canvas px-3 py-1.5 text-xs font-bold text-ink shadow-ambient">
+                      {a.driveTime}
+                    </span>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-mute">{a.category}</p>
+                    <p className="mt-1 font-serif text-lg text-ink">{a.name}</p>
+                  </div>
+                </div>
+              </TiltHover>
+            </Reveal>
+          ))}
         </div>
-        <div className="mx-auto mt-8 grid max-w-7xl gap-6 px-6 md:grid-cols-3">
-          {attractions.slice(0, 3).map((attraction) => (
-            <article key={attraction.id} className="overflow-hidden rounded-[1.75rem] bg-white shadow-ambient">
-              <div className="relative h-56">
-                <Image src={attraction.image} alt={attraction.name} fill className="object-cover" />
+        <Link href="/explore" className="mt-6 inline-flex md:hidden items-center gap-1 font-serif italic text-ink-soft">
+          All the notes <ArrowRight className="h-4 w-4" />
+        </Link>
+      </section>
+
+      {/* Who it's for + FAQ */}
+      <section className="mx-auto mt-24 max-w-7xl px-4 md:px-6">
+        <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+          <Reveal>
+            <div className="relative h-full overflow-hidden rounded-lg bg-canvas p-8 shadow-ambient">
+              <span className="absolute -right-6 -top-6 font-serif text-[160px] leading-none text-brand/10">★</span>
+              <p className="font-serif text-sm italic text-mute">— who tends to stay</p>
+              <h3 className="mt-2 font-serif text-3xl text-ink" style={{ letterSpacing: "-0.6px" }}>
+                Most guests are <span className="italic text-brand">one of these</span>
+              </h3>
+              <ul className="mt-6 space-y-3 text-sm text-body md:text-base">
+                {siteCopy.stayPolicies.idealFor.map((line) => (
+                  <li key={line} className="flex gap-3">
+                    <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand" />
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.1}>
+            <div className="rounded-lg bg-canvas p-8 shadow-ambient">
+              <p className="font-serif text-sm italic text-mute">— before you book</p>
+              <h3 className="mt-2 font-serif text-3xl text-ink" style={{ letterSpacing: "-0.6px" }}>
+                Honest answers, no script
+              </h3>
+              <div className="mt-6 divide-y divide-hairline-soft">
+                {faqItems.map((item) => (
+                  <details key={item.question} className="group py-4 first:pt-0">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-serif text-lg text-ink">
+                      {item.question}
+                      <span className="text-brand transition-transform group-open:rotate-45">+</span>
+                    </summary>
+                    <p className="mt-3 text-sm leading-[1.7] text-body md:text-base">{item.answer}</p>
+                  </details>
+                ))}
               </div>
-              <div className="p-6">
-                <p className="text-xs font-bold uppercase tracking-[0.3em] text-secondary">{attraction.category}</p>
-                <h3 className="mt-3 font-serif text-2xl text-primary">{attraction.name}</h3>
-                <p className="mt-3 text-sm leading-7 text-muted">{attraction.description}</p>
-                <Link href="/explore" className="mt-4 inline-flex items-center gap-2 font-semibold text-primary">
-                  Explore more <ArrowRight className="h-4 w-4 text-secondary" />
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* Closing CTA */}
+      <section className="mx-auto mt-24 max-w-7xl px-4 md:px-6">
+        <Reveal>
+          <div className="relative overflow-hidden rounded-lg bg-surface-dark p-10 text-white md:p-16">
+            <div className="absolute -left-20 -top-20 h-72 w-72 animate-spin-slow rounded-full opacity-20" aria-hidden style={{ background: "conic-gradient(from 0deg, #ffcc88, transparent, #ffcc88)" }} />
+            <div className="absolute right-8 top-8 hidden font-serif text-7xl italic text-white/20 md:block">☼</div>
+            <div className="relative z-10 max-w-2xl">
+              <p className="font-serif text-sm italic text-stone">— {siteCopy.address}</p>
+              <h2 className="mt-3 font-serif text-[36px] leading-[1.05] md:text-[60px]" style={{ letterSpacing: "-1.4px" }}>
+                Pick your dates.
+                <br />
+                <span className="italic text-brand">We'll handle the rest.</span>
+              </h2>
+              <p className="mt-5 max-w-md text-base leading-[1.65] text-stone">
+                We hold the unit for 15 minutes while you fill in details. Pay with Paystack and it's confirmed; transfer and we'll review within a few hours.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  href="/book"
+                  className="group inline-flex h-12 items-center gap-2 rounded-full bg-brand px-6 text-sm font-bold text-white shadow-ambient transition-transform hover:-translate-y-0.5 hover:bg-brand-pressed"
+                >
+                  Check availability
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
+                <a
+                  href={siteCopy.whatsapp}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-12 items-center rounded-full bg-white/10 px-6 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/15"
+                >
+                  Ask on WhatsApp first
+                </a>
               </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-6 py-16">
-        <div className="grid gap-12 lg:grid-cols-[1fr_0.85fr]">
-          <div className="rounded-[2rem] bg-primary p-10 text-white shadow-ambient">
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-secondary-fixed">Booking Engine</p>
-            <h2 className="mt-4 max-w-xl font-serif text-4xl leading-tight">Built for real availability, holds, and payment transitions.</h2>
-            <div className="mt-8 grid gap-4 md:grid-cols-2">
-              {[
-                "Live calendar status per apartment type",
-                "15-minute reservation hold before payment",
-                "Paystack initiation and webhook confirmation",
-                "Bank transfer fallback with staff review",
-                "Admin blackout dates and rate overrides",
-                "Guest and staff notification hooks"
-              ].map((feature) => (
-                <div key={feature} className="rounded-3xl bg-white/10 p-4 text-sm text-white/90">
-                  <Sparkles className="mb-3 h-4 w-4 text-secondary-fixed" />
-                  {feature}
-                </div>
-              ))}
             </div>
           </div>
-
-          <div className="rounded-[2rem] bg-white p-10 shadow-ambient">
-            <SectionHeading
-              eyebrow="FAQ"
-              title="Planning your stay"
-              description="A few details guests usually want before completing a reservation."
-            />
-            <div className="mt-8 space-y-5">
-              {faqItems.map((item) => (
-                <div key={item.question} className="rounded-3xl bg-surface-low p-5">
-                  <h3 className="font-semibold text-primary">{item.question}</h3>
-                  <p className="mt-2 text-sm leading-7 text-muted">{item.answer}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        </Reveal>
       </section>
     </div>
   );

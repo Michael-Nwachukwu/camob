@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { format } from "date-fns";
-import { apartmentTypes, siteCopy } from "@/lib/data/camob";
+import { CreditCard, Landmark, AlertCircle, CheckCircle2 } from "lucide-react";
+import { apartmentTypes } from "@/lib/data/camob";
 import { AvailabilityCalendar } from "@/components/booking/availability-calendar";
 import type { ApartmentTypeId, BookingQuote, UnitAvailabilityDay } from "@/lib/types";
-import { formatCurrency, formatDate, nightsBetween } from "@/lib/utils";
+import { cn, formatCurrency, formatDate, nightsBetween } from "@/lib/utils";
 
 type SubmissionState =
   | { status: "idle" }
@@ -32,6 +33,7 @@ export function BookingFlow({
   const [holdId, setHoldId] = useState<string>();
   const [formState, setFormState] = useState<SubmissionState>({ status: "idle" });
   const [isPending, startTransition] = useTransition();
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     startTransition(async () => {
@@ -45,10 +47,7 @@ export function BookingFlow({
   const apartment = apartmentTypes.find((item) => item.id === apartmentTypeId)!;
 
   const quote: BookingQuote | null = useMemo(() => {
-    if (!checkIn || !checkOut || checkOut <= checkIn) {
-      return null;
-    }
-
+    if (!checkIn || !checkOut || checkOut <= checkIn) return null;
     const nights = nightsBetween(checkIn, checkOut);
     const subtotal = nights * apartment.ratePerNight;
     return {
@@ -61,62 +60,67 @@ export function BookingFlow({
     };
   }, [apartment.ratePerNight, apartmentTypeId, checkIn, checkOut]);
 
+  const discount = useMemo(() => {
+    if (!quote) return null;
+    if (quote.nights >= 28) return { pct: 7, label: "Monthly stay" };
+    if (quote.nights >= 5) return { pct: 5, label: "5+ night stay" };
+    return null;
+  }, [quote]);
+
+  const discountAmount = quote && discount ? Math.round((quote.subtotal * discount.pct) / 100) : 0;
+  const finalTotal = quote ? quote.total - discountAmount : 0;
+
   function handleDateSelect(value: string) {
     if (!checkIn || (checkIn && checkOut)) {
       setCheckIn(value);
       setCheckOut(undefined);
+      setHoldId(undefined);
       return;
     }
-
     if (value <= checkIn) {
       setCheckIn(value);
       setCheckOut(undefined);
+      setHoldId(undefined);
       return;
     }
-
     setCheckOut(value);
   }
 
   async function holdDates(guestCount = 2) {
     if (!checkIn || !checkOut) {
-      setFormState({ status: "error", message: "Select both check-in and check-out dates first." });
+      setFormState({ status: "error", message: "Pick a check-in and check-out first." });
       return null;
     }
-
     const response = await fetch("/api/booking-holds", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        apartmentTypeId,
-        checkIn,
-        checkOut,
-        guests: guestCount
-      })
+      body: JSON.stringify({ apartmentTypeId, checkIn, checkOut, guests: guestCount })
     });
-
     const payload = await response.json();
     if (!response.ok) {
-      setFormState({ status: "error", message: payload.error ?? "Unable to create a reservation hold." });
+      setFormState({ status: "error", message: payload.error ?? "Couldn't hold those dates." });
       return null;
     }
-
     setHoldId(payload.hold.id);
-    setFormState({ status: "success", message: "Dates held for 15 minutes. Complete your booking below." });
+    setFormState({ status: "success", message: "Held for 15 minutes. Finish up below to keep it." });
     return payload.hold.id as string;
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setSubmitting(true);
     const formData = new FormData(event.currentTarget);
     const guestCount = Number(formData.get("guests"));
 
     if (!checkIn || !checkOut) {
-      setFormState({ status: "error", message: "Please pick a valid stay window." });
+      setFormState({ status: "error", message: "Pick a valid stay window." });
+      setSubmitting(false);
       return;
     }
 
     const resolvedHoldId = holdId ?? (await holdDates(guestCount));
     if (!resolvedHoldId) {
+      setSubmitting(false);
       return;
     }
 
@@ -133,7 +137,7 @@ export function BookingFlow({
           fullName: formData.get("fullName"),
           email: formData.get("email"),
           phone: formData.get("phone"),
-          guests: Number(formData.get("guests")),
+          guests: guestCount,
           specialRequests: formData.get("specialRequests")
         }
       })
@@ -141,7 +145,8 @@ export function BookingFlow({
 
     const payload = await response.json();
     if (!response.ok) {
-      setFormState({ status: "error", message: payload.error ?? "Could not finalize the booking." });
+      setFormState({ status: "error", message: payload.error ?? "Couldn't finalise the booking." });
+      setSubmitting(false);
       return;
     }
 
@@ -149,12 +154,8 @@ export function BookingFlow({
       const paystackResponse = await fetch("/api/payments/paystack/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bookingId: payload.booking.id,
-          email: payload.booking.guest.email
-        })
+        body: JSON.stringify({ bookingId: payload.booking.id, email: payload.booking.guest.email })
       });
-
       const paystackPayload = await paystackResponse.json();
       if (paystackPayload.authorizationUrl) {
         window.location.href = paystackPayload.authorizationUrl;
@@ -166,188 +167,275 @@ export function BookingFlow({
   }
 
   return (
-    <div className="mx-auto grid max-w-7xl gap-10 px-6 pb-20 pt-40 lg:grid-cols-[1.1fr_0.9fr]">
-      <div className="space-y-8">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-secondary">Booking & Availability</p>
-          <h1 className="mt-4 font-serif text-5xl text-primary">Secure your Camob stay.</h1>
-          <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
-            Choose your apartment type, select open dates, and complete your reservation with instant hold protection.
-          </p>
-        </div>
-
-        <div className="rounded-[2rem] bg-white p-6 shadow-ambient">
-          <label className="text-xs font-bold uppercase tracking-[0.3em] text-secondary">Apartment Type</label>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {apartmentTypes.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => {
-                  setApartmentTypeId(item.id);
-                  setCheckIn(undefined);
-                  setCheckOut(undefined);
-                  setHoldId(undefined);
-                }}
-                className={`rounded-[1.5rem] border p-5 text-left ${
-                  apartmentTypeId === item.id ? "border-primary bg-primary text-white" : "border-outline bg-surface-low text-primary"
-                }`}
-              >
-                <p className="font-serif text-2xl">{item.shortName}</p>
-                <p className={`mt-2 text-sm ${apartmentTypeId === item.id ? "text-white/80" : "text-muted"}`}>
-                  {formatCurrency(item.ratePerNight)} per night • up to {item.maxGuests} guests
-                </p>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <AvailabilityCalendar
-          apartmentTypeId={apartmentTypeId}
-          days={days}
-          checkIn={checkIn}
-          checkOut={checkOut}
-          onMonthChange={setMonth}
-          onDateSelect={handleDateSelect}
-        />
-
-        <form onSubmit={handleSubmit} className="rounded-[2rem] bg-white p-8 shadow-ambient">
-          <div className="grid gap-5 md:grid-cols-2">
-            <div>
-              <label className="text-xs font-bold uppercase tracking-[0.3em] text-secondary">Full name</label>
-              <input name="fullName" required className="mt-2 w-full rounded-2xl border border-outline bg-surface-low px-4 py-3" />
-            </div>
-            <div>
-              <label className="text-xs font-bold uppercase tracking-[0.3em] text-secondary">Email</label>
-              <input name="email" type="email" required className="mt-2 w-full rounded-2xl border border-outline bg-surface-low px-4 py-3" />
-            </div>
-            <div>
-              <label className="text-xs font-bold uppercase tracking-[0.3em] text-secondary">Phone</label>
-              <input name="phone" required className="mt-2 w-full rounded-2xl border border-outline bg-surface-low px-4 py-3" />
-            </div>
-            <div>
-              <label className="text-xs font-bold uppercase tracking-[0.3em] text-secondary">Guests</label>
-              <select
-                name="guests"
-                defaultValue={initialGuests ?? Math.min(2, apartment.maxGuests)}
-                className="mt-2 w-full rounded-2xl border border-outline bg-surface-low px-4 py-3"
-              >
-                {Array.from({ length: apartment.maxGuests }).map((_, index) => (
-                  <option key={index + 1} value={index + 1}>
-                    {index + 1} guest{index + 1 > 1 ? "s" : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-xs font-bold uppercase tracking-[0.3em] text-secondary">Special requests</label>
-              <textarea
-                name="specialRequests"
-                rows={4}
-                className="mt-2 w-full rounded-2xl border border-outline bg-surface-low px-4 py-3"
-                placeholder="Late check-in, airport pickup, or anything the team should prepare."
-              />
-            </div>
-          </div>
-
-          <div className="mt-8 grid gap-3 md:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => setPaymentMethod("paystack")}
-              className={`rounded-[1.5rem] border p-4 text-left ${
-                paymentMethod === "paystack" ? "border-primary bg-primary text-white" : "border-outline bg-surface-low text-primary"
-              }`}
-            >
-              <p className="font-semibold">Paystack</p>
-              <p className={`mt-2 text-sm ${paymentMethod === "paystack" ? "text-white/80" : "text-muted"}`}>
-                Card or supported online payment.
-              </p>
-            </button>
-            <button
-              type="button"
-              onClick={() => setPaymentMethod("bank_transfer")}
-              className={`rounded-[1.5rem] border p-4 text-left ${
-                paymentMethod === "bank_transfer" ? "border-primary bg-primary text-white" : "border-outline bg-surface-low text-primary"
-              }`}
-            >
-              <p className="font-semibold">Bank Transfer</p>
-              <p className={`mt-2 text-sm ${paymentMethod === "bank_transfer" ? "text-white/80" : "text-muted"}`}>
-                Reserve now and let staff verify your transfer.
-              </p>
-            </button>
-          </div>
-
-          {formState.status !== "idle" ? (
-            <div
-              className={`mt-6 rounded-2xl px-4 py-3 text-sm ${
-                formState.status === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-              }`}
-            >
-              {formState.message}
-            </div>
-          ) : null}
-
-          <button disabled={isPending} className="mt-8 inline-flex rounded-full bg-silk px-6 py-4 font-semibold text-white">
-            {paymentMethod === "paystack" ? "Continue to payment" : "Reserve with bank transfer"}
-          </button>
-        </form>
+    <div className="relative pb-20 pt-24 md:pt-32">
+      <div className="mx-auto max-w-7xl px-4 md:px-6">
+        <p className="font-serif text-sm italic text-mute">— check availability</p>
+        <h1 className="mt-3 max-w-3xl font-serif text-[36px] leading-[1.05] text-ink md:text-[64px]" style={{ letterSpacing: "-1.4px" }}>
+          Pick your dates.
+          <br />
+          <span className="italic text-brand">We'll hold the unit</span> while you finish up.
+        </h1>
+        <p className="mt-4 max-w-2xl text-base leading-[1.6] text-body md:text-lg">
+          Holds last 15 minutes. Paystack confirms instantly; bank transfers go to
+          us for a quick manual check.
+        </p>
       </div>
 
-      <aside className="lg:pt-14">
-        <div className="sticky top-28 rounded-[2rem] bg-primary p-8 text-white shadow-ambient">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-secondary-fixed">Reservation Summary</p>
-          <h2 className="mt-4 font-serif text-3xl">{apartment.name}</h2>
-          <p className="mt-3 text-sm leading-7 text-white/80">{apartment.description}</p>
-
-          <div className="mt-8 rounded-[1.75rem] bg-white/10 p-6">
-            <div className="space-y-4 text-sm">
-              <div className="flex justify-between gap-4">
-                <span className="text-white/75">Check-in</span>
-                <span>{checkIn ? formatDate(checkIn) : "Select date"}</span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-white/75">Check-out</span>
-                <span>{checkOut ? formatDate(checkOut) : "Select date"}</span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-white/75">Policy</span>
-                <span>{siteCopy.checkIn} / {siteCopy.checkOut}</span>
-              </div>
+      <div className="mx-auto mt-10 grid max-w-7xl gap-8 px-4 md:px-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="space-y-6">
+          {/* Unit picker */}
+          <div className="rounded-lg bg-canvas p-6 shadow-ambient md:p-7">
+            <p className="font-serif text-sm italic text-mute">— which maisonette?</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {apartmentTypes.map((item) => {
+                const active = apartmentTypeId === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setApartmentTypeId(item.id);
+                      setCheckIn(undefined);
+                      setCheckOut(undefined);
+                      setHoldId(undefined);
+                      setFormState({ status: "idle" });
+                    }}
+                    className={cn(
+                      "rounded-md p-5 text-left transition-all hover:-translate-y-0.5",
+                      active ? "bg-ink text-canvas shadow-ambient" : "bg-surface-card text-ink hover:bg-surface-deep"
+                    )}
+                  >
+                    <p className="font-serif text-xl">{item.shortName} Maisonette</p>
+                    <p className={cn("mt-1 text-sm", active ? "text-canvas/75" : "text-mute")}>
+                      {formatCurrency(item.ratePerNight)} / night · up to {item.maxGuests} guests
+                    </p>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          <div className="mt-8 space-y-4 rounded-[1.75rem] bg-white p-6 text-primary">
+          {/* Calendar */}
+          <AvailabilityCalendar
+            apartmentTypeId={apartmentTypeId}
+            days={days}
+            checkIn={checkIn}
+            checkOut={checkOut}
+            onMonthChange={setMonth}
+            onDateSelect={handleDateSelect}
+          />
+
+          {/* Guest form */}
+          <form onSubmit={handleSubmit} className="rounded-lg bg-canvas p-6 shadow-ambient md:p-8">
+            <p className="font-serif text-sm italic text-mute">— your details</p>
+            <h2 className="mt-1 font-serif text-3xl text-ink" style={{ letterSpacing: "-0.6px" }}>Just the basics</h2>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <FormField name="fullName" label="Full name" required />
+              <FormField name="email" label="Email" type="email" required />
+              <FormField name="phone" label="Phone (with country code)" required placeholder="+234…" />
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-[0.18em] text-mute">Guests</label>
+                <select
+                  name="guests"
+                  defaultValue={initialGuests ?? Math.min(2, apartment.maxGuests)}
+                  className="mt-1.5 h-11 w-full rounded-md bg-canvas px-3 text-sm text-ink ring-1 ring-hairline focus:outline-none focus:ring-2 focus:ring-focus-ring"
+                >
+                  {Array.from({ length: apartment.maxGuests }).map((_, index) => (
+                    <option key={index + 1} value={index + 1}>
+                      {index + 1} guest{index + 1 > 1 ? "s" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.18em] text-mute">
+                  Anything we should know? (optional)
+                </label>
+                <textarea
+                  name="specialRequests"
+                  rows={3}
+                  className="mt-1.5 w-full rounded-md bg-canvas px-3 py-3 text-sm text-ink ring-1 ring-hairline focus:outline-none focus:ring-2 focus:ring-focus-ring"
+                  placeholder="Late flight, early breakfast, picking up the keys for a parent…"
+                />
+              </div>
+            </div>
+
+            
+          </form>
+        </div>
+
+        {/* Summary aside */}
+        <aside>
+          <div className="sticky top-24 rounded-lg bg-canvas p-7 shadow-scrim md:p-8">
+            <p className="font-serif text-sm italic text-mute">— your stay</p>
+            <h2 className="mt-1 font-serif text-2xl text-ink" style={{ letterSpacing: "-0.4px" }}>{apartment.name}</h2>
+
+            <div className="mt-5 space-y-2.5 text-sm">
+              <SummaryRow label="Check-in" value={checkIn ? formatDate(checkIn) : "—"} />
+              <SummaryRow label="Check-out" value={checkOut ? formatDate(checkOut) : "—"} />
+              <SummaryRow label="Nights" value={quote ? `${quote.nights}` : "—"} />
+            </div>
+
+            <hr className="my-5 border-hairline-soft" />
+
+            <div className="space-y-2.5 text-sm">
+              {quote ? (
+                <>
+                  <SummaryRow
+                    label={`${formatCurrency(quote.nightlyRate)} × ${quote.nights} night${quote.nights > 1 ? "s" : ""}`}
+                    value={formatCurrency(quote.subtotal)}
+                  />
+                  <SummaryRow label="Service charge" value={formatCurrency(quote.serviceCharge)} />
+                  {discount ? (
+                    <SummaryRow
+                      label={`${discount.label} (−${discount.pct}%)`}
+                      value={`−${formatCurrency(discountAmount)}`}
+                      tone="success"
+                    />
+                  ) : null}
+                </>
+              ) : (
+                <p className="text-sm leading-[1.6] text-mute">
+                  Pick check-in and check-out on the calendar to see the total.
+                </p>
+              )}
+            </div>
+
             {quote ? (
               <>
-                <div className="flex justify-between text-sm text-muted">
-                  <span>
-                    {formatCurrency(quote.nightlyRate)} x {quote.nights} night{quote.nights > 1 ? "s" : ""}
+                <hr className="my-5 border-hairline-soft" />
+                <div className="flex items-baseline justify-between">
+                  <span className="font-serif text-base italic text-ink">Total</span>
+                  <span className="font-serif text-3xl text-ink">
+                    {formatCurrency(finalTotal)}
                   </span>
-                  <span>{formatCurrency(quote.subtotal)}</span>
-                </div>
-                <div className="flex justify-between text-sm text-muted">
-                  <span>Service charge</span>
-                  <span>{formatCurrency(quote.serviceCharge)}</span>
-                </div>
-                <div className="border-t border-outline pt-4">
-                  <div className="flex justify-between font-semibold">
-                    <span>Total</span>
-                    <span>{formatCurrency(quote.total)}</span>
-                  </div>
                 </div>
               </>
-            ) : (
-              <p className="text-sm leading-7 text-muted">
-                Pick your dates to see the live quote and create a reservation hold.
-              </p>
-            )}
-          </div>
+            ) : null}
 
-          <div className="mt-8 rounded-[1.75rem] bg-white/10 p-6 text-sm text-white/80">
-            Holds last 15 minutes. Paystack bookings remain pending until webhook confirmation, while bank transfer reservations are surfaced to staff for manual review.
+            <div className="mt-6 rounded-md bg-surface-card p-4 text-xs leading-[1.6] text-mute">
+              We hold the unit for 15 minutes once you submit. Paystack confirms
+              automatically; bank transfer waits for a quick manual check.
+            </div>
+
+            {/* Payment */}
+            <div className="mt-8">
+              <p className="font-serif text-sm italic text-mute">— how you'd like to pay</p>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <PaymentOption
+                  active={paymentMethod === "paystack"}
+                  onClick={() => setPaymentMethod("paystack")}
+                  icon={<CreditCard className="h-5 w-5" />}
+                  title="Paystack"
+                  note="Card or bank app. Confirms the booking instantly."
+                />
+                <PaymentOption
+                  active={paymentMethod === "bank_transfer"}
+                  onClick={() => setPaymentMethod("bank_transfer")}
+                  icon={<Landmark className="h-5 w-5" />}
+                  title="Bank transfer"
+                  note="We'll send account details and check it in a few hours."
+                />
+              </div>
+            </div>
+
+            {formState.status !== "idle" ? (
+              <div
+                className={cn(
+                  "mt-6 flex items-start gap-2 rounded-md px-4 py-3 text-sm",
+                  formState.status === "success"
+                    ? "bg-success-pale text-success"
+                    : "bg-surface-card text-danger ring-1 ring-danger/20"
+                )}
+              >
+                {formState.status === "success"
+                  ? <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                  : <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />}
+                <span>{formState.message}</span>
+              </div>
+            ) : null}
+
+            <button
+              disabled={isPending || submitting}
+              className="mt-8 inline-flex h-12 items-center rounded-full bg-brand px-7 text-sm font-bold text-white shadow-ambient transition-all hover:-translate-y-0.5 hover:bg-brand-pressed disabled:translate-y-0 disabled:bg-stone disabled:shadow-none"
+            >
+              {submitting
+                ? "Working on it…"
+                : paymentMethod === "paystack" ? "Continue to payment →" : "Reserve with bank transfer →"}
+            </button>
           </div>
-        </div>
-      </aside>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function FormField({
+  name,
+  label,
+  type = "text",
+  required,
+  placeholder
+}: {
+  name: string;
+  label: string;
+  type?: string;
+  required?: boolean;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <label className="text-xs font-semibold uppercase tracking-[0.18em] text-mute">{label}</label>
+      <input
+        name={name}
+        type={type}
+        required={required}
+        placeholder={placeholder}
+        className="mt-1.5 h-11 w-full rounded-md bg-canvas px-3 text-sm text-ink ring-1 ring-hairline placeholder:text-ash focus:outline-none focus:ring-2 focus:ring-focus-ring"
+      />
+    </div>
+  );
+}
+
+function PaymentOption({
+  active,
+  onClick,
+  icon,
+  title,
+  note
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  title: string;
+  note: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-md p-4 text-left transition-colors",
+        active ? "bg-ink text-canvas" : "bg-surface-card text-ink hover:bg-surface-deep"
+      )}
+    >
+      <div className="flex items-center gap-2">
+        {icon}
+        <p className="text-base font-semibold">{title}</p>
+      </div>
+      <p className={cn("mt-1.5 text-sm", active ? "text-canvas/75" : "text-mute")}>{note}</p>
+    </button>
+  );
+}
+
+function SummaryRow({ label, value, tone }: { label: string; value: string; tone?: "success" }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <span className="text-mute">{label}</span>
+      <span className={cn("font-semibold", tone === "success" ? "text-success" : "text-ink")}>
+        {value}
+      </span>
     </div>
   );
 }

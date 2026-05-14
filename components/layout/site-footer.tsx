@@ -5,126 +5,89 @@ import { getSiteCopy } from "@/lib/services/repository";
 export function SiteFooter() {
   const site = getSiteCopy();
 
-  const topLinks = [
-    { href: "/book", label: "Platform" },
-    { href: "/apartments/one-bedroom-urban-sanctuary", label: "Suites" },
-    { href: "/explore", label: "Direct" },
-    { href: "/book", label: "Bookings" },
-    { href: "#concierge", label: "Info Hub" }
-  ];
-
-  const footerGroups = [
+  const groups = [
     {
       title: "Stay",
       links: [
-        { href: "/apartments/one-bedroom-urban-sanctuary", label: "1-Bedroom" },
-        { href: "/apartments/two-bedroom-executive-suite", label: "2-Bedroom" },
-        { href: "/book", label: "Availability" }
+        { href: "/apartments/one-bedroom-maisonette", label: "1-Bedroom Maisonette" },
+        { href: "/apartments/two-bedroom-maisonette", label: "2-Bedroom Maisonette" },
+        { href: "/book", label: "Check availability" }
       ]
     },
     {
-      title: "Explore",
+      title: "Around here",
       links: [
-        { href: "/explore", label: "Neighborhood Guide" },
+        { href: "/explore", label: "Neighbourhood guide" },
         { href: site.googleMapsLink, label: "Directions", external: true },
-        { href: site.whatsapp, label: "WhatsApp Concierge", external: true }
+        { href: site.whatsapp, label: "WhatsApp us", external: true }
       ]
     },
     {
-      title: "Guest Info",
+      title: "Booking",
       links: [
-        { href: "/book", label: "Instant Booking" },
-        { href: "/book", label: "Payment Options" },
-        { href: "/book", label: "Availability Calendar" }
+        { href: "/book", label: "Live calendar" },
+        { href: "/book", label: "Pay with Paystack" },
+        { href: "/book", label: "Bank transfer" }
       ]
     },
     {
-      title: "Social",
+      title: "About",
       links: [
-        { href: "https://www.instagram.com", label: "Instagram", external: true },
-        { href: "https://x.com", label: "Twitter", external: true },
-        { href: "https://www.linkedin.com", label: "LinkedIn", external: true }
-      ]
-    },
-    {
-      title: "Company",
-      links: [
-        { href: "#concierge", label: "Open Roles" },
-        { href: "#concierge", label: "Terms and Conditions" },
-        { href: "#concierge", label: "Privacy Policy" }
+        { href: "#contact", label: "Contact" },
+        { href: "#terms", label: "Terms" },
+        { href: "#privacy", label: "Privacy" }
       ]
     }
   ];
 
   return (
-    <footer id="concierge" className="mt-24 bg-black px-4 pb-6 pt-16 text-white md:px-6">
-      <div className="mx-auto max-w-7xl">
-        <div className="rounded-t-[1.7rem] bg-[#171717] px-6 py-4 md:px-10">
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+    <footer id="contact" className="relative mt-20 border-t border-hairline bg-canvas/60 backdrop-blur">
+      {/* Soft wash + sun ornament */}
+      <span aria-hidden className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full opacity-40 blur-3xl" style={{ background: "radial-gradient(circle, rgba(255,195,120,0.6), transparent 70%)" }} />
+      <span aria-hidden className="pointer-events-none absolute right-10 top-10 hidden font-serif text-7xl italic text-brand/15 md:block">☼</span>
+
+      <div className="relative mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-20">
+        <div className="grid gap-12 md:grid-cols-[1.2fr_1.8fr]">
+          <div>
             <Link href="/" className="inline-flex items-center">
-              <Image
-                src="/camob_logo.svg"
-                alt="Camob Residence logo"
-                width={150}
-                height={42}
-                className="h-auto w-32 brightness-0 invert"
-              />
+              <Image src="/camob_logo.svg" alt="Camob Residence" width={100} height={100} className="w-28" />
             </Link>
+            <p className="mt-4 font-serif text-2xl italic text-ink md:text-3xl" style={{ letterSpacing: "-0.4px" }}>
+              Two little houses, on a quiet street.
+            </p>
+            <p className="mt-3 max-w-sm text-sm leading-[1.65] text-mute md:text-base">{site.description}</p>
+            <p className="mt-6 font-serif text-sm italic text-ink-soft">{site.address}</p>
+          </div>
 
-            <nav className="flex flex-wrap items-center gap-5 text-sm text-white/75 md:justify-center">
-              {topLinks.map((link) => (
-                <Link key={link.label} href={link.href} className="transition-colors hover:text-white">
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-
-            <Link
-              href="/book"
-              className="inline-flex w-fit rounded-full bg-[#67e8e3] px-5 py-3 text-sm font-semibold text-black transition-transform hover:scale-[0.98]"
-            >
-              Check Availability
-            </Link>
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+            {groups.map((group) => (
+              <div key={group.title}>
+                <h3 className="font-serif text-lg text-ink">{group.title}</h3>
+                <ul className="mt-4 space-y-2.5 text-sm text-mute">
+                  {group.links.map((link) => (
+                    <li key={link.label}>
+                      {link.external ? (
+                        <a href={link.href} target="_blank" rel="noreferrer" className="transition-colors hover:text-ink">
+                          {link.label}
+                        </a>
+                      ) : (
+                        <Link href={link.href} className="transition-colors hover:text-ink">
+                          {link.label}
+                        </Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="rounded-b-[1.7rem] bg-black px-6 py-12 md:px-10 md:py-14">
-          <div className="grid gap-12 lg:grid-cols-[1.2fr_1.8fr]">
-            <div>
-              <h2 className="max-w-md font-serif text-5xl leading-none text-white md:text-7xl">Camob Residence</h2>
-              <p className="mt-6 max-w-sm text-sm leading-7 text-white/55">{site.description}</p>
-            </div>
-
-            <div className="grid gap-10 sm:grid-cols-2 xl:grid-cols-3">
-              {footerGroups.map((group) => (
-                <div key={group.title}>
-                  <h3 className="text-lg font-medium text-white">{group.title}</h3>
-                  <ul className="mt-4 space-y-3 text-sm text-white/55">
-                    {group.links.map((link) => (
-                      <li key={link.label}>
-                        {link.external ? (
-                          <a href={link.href} target="_blank" rel="noreferrer" className="transition-colors hover:text-white">
-                            {link.label}
-                          </a>
-                        ) : (
-                          <Link href={link.href} className="transition-colors hover:text-white">
-                            {link.label}
-                          </Link>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-24 grid gap-6 border-t border-white/10 pt-8 md:grid-cols-3 md:items-end">
-            <p className="text-sm text-white/45">
-              Ogombo Town, Lekki Scheme 2, Lagos State, Nigeria
-            </p>
-            <p className="text-center font-serif text-3xl text-white md:text-4xl">Book. Pay. Stay.</p>
-            <p className="text-sm text-white/45 md:text-right">Made for Camob Residence</p>
+        <div className="mt-14 flex flex-col items-start justify-between gap-3 border-t border-hairline pt-6 md:flex-row md:items-center">
+          <p className="font-serif text-xs italic text-mute">© {new Date().getFullYear()} Camob Residence. Run by humans, in Ogombo.</p>
+          <div className="flex items-center gap-4 text-xs text-mute">
+            <a href={site.whatsapp} target="_blank" rel="noreferrer" className="hover:text-ink">WhatsApp</a>
+            <a href={`mailto:${site.conciergeEmail}`} className="hover:text-ink">{site.conciergeEmail}</a>
           </div>
         </div>
       </div>

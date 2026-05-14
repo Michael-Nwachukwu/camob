@@ -4,20 +4,26 @@ export function SectionHeading({
   eyebrow,
   title,
   description,
-  className
+  className,
+  align = "left"
 }: {
   eyebrow?: string;
   title: string;
   description?: string;
   className?: string;
+  align?: "left" | "center";
 }) {
   return (
-    <div className={cn("max-w-2xl", className)}>
+    <div className={cn("max-w-2xl", align === "center" && "mx-auto text-center", className)}>
       {eyebrow ? (
-        <p className="text-xs font-bold uppercase tracking-[0.3em] text-secondary">{eyebrow}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-mute">{eyebrow}</p>
       ) : null}
-      <h2 className="mt-3 font-serif text-4xl leading-tight text-primary md:text-5xl">{title}</h2>
-      {description ? <p className="mt-4 text-lg leading-8 text-muted">{description}</p> : null}
+      <h2 className="mt-3 text-[28px] font-bold leading-[1.15] text-ink tracking-display md:text-[44px] md:leading-[1.1]">
+        {title}
+      </h2>
+      {description ? (
+        <p className="mt-4 text-base leading-[1.55] text-body md:text-lg">{description}</p>
+      ) : null}
     </div>
   );
 }
