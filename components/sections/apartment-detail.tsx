@@ -167,7 +167,11 @@ export function ApartmentDetail({ apartment }: { apartment: ApartmentTypeSummary
           <Reveal>
             <section className="mt-12 overflow-hidden rounded-lg bg-canvas shadow-ambient">
               <div className="relative aspect-[16/7] bg-surface-card">
-                <GoogleMapEmbed query="Ogombo, Lekki Scheme 2, Lagos" zoom={14} />
+                <GoogleMapEmbed
+                  coords={{ lat: siteCopy.coordinates.latitude, lng: siteCopy.coordinates.longitude }}
+                  zoom={17}
+                  title="Camob Residence — exact location"
+                />
               </div>
               <div className="p-7 md:p-9">
                 <p className="font-serif text-sm italic text-mute">— where you'll be</p>

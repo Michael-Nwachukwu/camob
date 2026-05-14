@@ -68,7 +68,7 @@ export function HomeHero() {
         />
       </motion.div>
 
-      <div className="relative mx-auto max-w-7xl px-4 pb-16 md:px-6 md:pb-24 mb-14 sm:mb-0">
+      <div className="relative mx-auto max-w-7xl px-4 pb-16 md:px-6 md:pb-24 mb-10 sm:mb-0">
         <div className="grid gap-14 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           {/* Copy column */}
           <div>

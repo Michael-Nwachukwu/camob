@@ -50,7 +50,7 @@ export function ExplorePage() {
               className={cn(
                 "rounded-full px-4 py-2 text-sm font-bold transition-colors",
                 active === cat
-                  ? "bg-ink text-canvas shadow-ambient"
+                  ? "bg-brand text-canvas shadow-ambient"
                   : "bg-canvas text-ink shadow-ambient hover:bg-surface-card"
               )}
             >
@@ -67,7 +67,11 @@ export function ExplorePage() {
           className="mt-10 overflow-hidden rounded-lg bg-canvas shadow-ambient"
         >
           <div className="relative aspect-[21/8] bg-surface-card">
-            <GoogleMapEmbed query="Ogombo, Lekki Scheme 2, Lagos" zoom={14} />
+            <GoogleMapEmbed
+              coords={{ lat: siteCopy.coordinates.latitude, lng: siteCopy.coordinates.longitude }}
+              zoom={17}
+              title="Camob Residence — exact location"
+            />
             <a
               href={siteCopy.googleMapsLink}
               target="_blank"

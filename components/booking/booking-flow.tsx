@@ -202,7 +202,7 @@ export function BookingFlow({
                     }}
                     className={cn(
                       "rounded-md p-5 text-left transition-all hover:-translate-y-0.5",
-                      active ? "bg-ink text-canvas shadow-ambient" : "bg-surface-card text-ink hover:bg-surface-deep"
+                      active ? "bg-red-700 text-canvas shadow-ambient" : "bg-surface-card text-ink hover:bg-surface-deep"
                     )}
                   >
                     <p className="font-serif text-xl">{item.shortName} Maisonette</p>
@@ -261,7 +261,54 @@ export function BookingFlow({
               </div>
             </div>
 
-            
+            <div>
+              {/* Payment */}
+              <div className="mt-8">
+                <p className="font-serif text-sm italic text-mute">— how you'd like to pay</p>
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <PaymentOption
+                    active={paymentMethod === "paystack"}
+                    onClick={() => setPaymentMethod("paystack")}
+                    icon={<CreditCard className="h-5 w-5" />}
+                    title="Paystack"
+                    note="Card or bank app. Confirms the booking instantly."
+                  />
+                  <PaymentOption
+                    active={paymentMethod === "bank_transfer"}
+                    onClick={() => setPaymentMethod("bank_transfer")}
+                    icon={<Landmark className="h-5 w-5" />}
+                    title="Bank transfer"
+                    note="We'll send account details and check it in a few hours."
+                  />
+                </div>
+              </div>
+
+              {formState.status !== "idle" ? (
+                <div
+                  className={cn(
+                    "mt-6 flex items-start gap-2 rounded-md px-4 py-3 text-sm",
+                    formState.status === "success"
+                      ? "bg-success-pale text-success"
+                      : "bg-surface-card text-danger ring-1 ring-danger/20"
+                  )}
+                >
+                  {formState.status === "success"
+                    ? <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    : <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />}
+                  <span>{formState.message}</span>
+                </div>
+              ) : null}
+
+              <button
+                disabled={isPending || submitting}
+                className="mt-8 inline-flex h-12 items-center rounded-full bg-brand px-7 text-sm font-bold text-white shadow-ambient transition-all hover:-translate-y-0.5 hover:bg-brand-pressed disabled:translate-y-0 disabled:bg-stone disabled:shadow-none"
+              >
+                {submitting
+                  ? "Working on it…"
+                  : paymentMethod === "paystack" ? "Continue to payment →" : "Reserve with bank transfer →"}
+              </button>
+            </div>
+
           </form>
         </div>
 
@@ -319,51 +366,55 @@ export function BookingFlow({
               automatically; bank transfer waits for a quick manual check.
             </div>
 
-            {/* Payment */}
-            <div className="mt-8">
-              <p className="font-serif text-sm italic text-mute">— how you'd like to pay</p>
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <PaymentOption
-                  active={paymentMethod === "paystack"}
-                  onClick={() => setPaymentMethod("paystack")}
-                  icon={<CreditCard className="h-5 w-5" />}
-                  title="Paystack"
-                  note="Card or bank app. Confirms the booking instantly."
-                />
-                <PaymentOption
-                  active={paymentMethod === "bank_transfer"}
-                  onClick={() => setPaymentMethod("bank_transfer")}
-                  icon={<Landmark className="h-5 w-5" />}
-                  title="Bank transfer"
-                  note="We'll send account details and check it in a few hours."
-                />
+            <div className="hidden sm:block">
+              {/* Payment */}
+              <div className="mt-8">
+                <p className="font-serif text-sm italic text-mute">— how you'd like to pay</p>
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <PaymentOption
+                    active={paymentMethod === "paystack"}
+                    onClick={() => setPaymentMethod("paystack")}
+                    icon={<CreditCard className="h-5 w-5" />}
+                    title="Paystack"
+                    note="Card or bank app. Confirms the booking instantly."
+                  />
+                  <PaymentOption
+                    active={paymentMethod === "bank_transfer"}
+                    onClick={() => setPaymentMethod("bank_transfer")}
+                    icon={<Landmark className="h-5 w-5" />}
+                    title="Bank transfer"
+                    note="We'll send account details and check it in a few hours."
+                  />
+                </div>
               </div>
+
+              {formState.status !== "idle" ? (
+                <div
+                  className={cn(
+                    "mt-6 flex items-start gap-2 rounded-md px-4 py-3 text-sm",
+                    formState.status === "success"
+                      ? "bg-success-pale text-success"
+                      : "bg-surface-card text-danger ring-1 ring-danger/20"
+                  )}
+                >
+                  {formState.status === "success"
+                    ? <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    : <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />}
+                  <span>{formState.message}</span>
+                </div>
+              ) : null}
+
+              <button
+                disabled={isPending || submitting}
+                className="mt-8 inline-flex h-12 items-center rounded-full bg-brand px-7 text-sm font-bold text-white shadow-ambient transition-all hover:-translate-y-0.5 hover:bg-brand-pressed disabled:translate-y-0 disabled:bg-stone disabled:shadow-none"
+              >
+                {submitting
+                  ? "Working on it…"
+                  : paymentMethod === "paystack" ? "Continue to payment →" : "Reserve with bank transfer →"}
+              </button>
             </div>
 
-            {formState.status !== "idle" ? (
-              <div
-                className={cn(
-                  "mt-6 flex items-start gap-2 rounded-md px-4 py-3 text-sm",
-                  formState.status === "success"
-                    ? "bg-success-pale text-success"
-                    : "bg-surface-card text-danger ring-1 ring-danger/20"
-                )}
-              >
-                {formState.status === "success"
-                  ? <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                  : <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />}
-                <span>{formState.message}</span>
-              </div>
-            ) : null}
 
-            <button
-              disabled={isPending || submitting}
-              className="mt-8 inline-flex h-12 items-center rounded-full bg-brand px-7 text-sm font-bold text-white shadow-ambient transition-all hover:-translate-y-0.5 hover:bg-brand-pressed disabled:translate-y-0 disabled:bg-stone disabled:shadow-none"
-            >
-              {submitting
-                ? "Working on it…"
-                : paymentMethod === "paystack" ? "Continue to payment →" : "Reserve with bank transfer →"}
-            </button>
           </div>
         </aside>
       </div>

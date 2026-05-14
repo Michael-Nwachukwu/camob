@@ -45,7 +45,7 @@ export function AvailabilityCalendar({
             onClick={() => onMonthChange(format(addMonths(referenceMonth, -1), "yyyy-MM-dd"))}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-surface-card text-ink hover:bg-surface-deep"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4 text-brand" />
           </button>
           <button
             type="button"
@@ -53,7 +53,7 @@ export function AvailabilityCalendar({
             onClick={() => onMonthChange(format(addMonths(referenceMonth, 1), "yyyy-MM-dd"))}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-surface-card text-ink hover:bg-surface-deep"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 text-brand" />
           </button>
         </div>
       </div>
@@ -85,7 +85,7 @@ export function AvailabilityCalendar({
               disabled={blocked}
               onClick={() => onDateSelect(isoDate)}
               className={cn(
-                "min-h-[68px] rounded-md px-2 py-2 text-left transition-colors",
+                "min-h-[46px] sm:min-h-[68px] rounded-md px-2 py-2 text-center sm:text-left transition-colors",
                 blocked && "cursor-not-allowed bg-transparent text-ash line-through decoration-stone",
                 !blocked && !selected && day?.status === "available" && "bg-surface-card hover:bg-surface-deep text-ink",
                 !blocked && !selected && day?.status === "partial" && "bg-surface-card hover:bg-surface-deep text-ink ring-1 ring-stone",
@@ -94,14 +94,14 @@ export function AvailabilityCalendar({
               )}
             >
               <div className="text-sm font-bold">{index + 1}</div>
-              <div className={cn(
+              {/* <div className={cn(
                 "mt-1 text-[10px] font-semibold",
                 isEdge ? "text-canvas/80" : selected ? "text-ink/70" : "text-mute"
               )}>
                 {day ? `${day.remainingUnits} left` : ""}
-              </div>
+              </div> */}
               <div className={cn(
-                "text-[10px]",
+                "text-[10px] mt-2 hidden sm:block",
                 isEdge ? "text-canvas/80" : "text-mute"
               )}>
                 {day ? formatCurrency(day.price) : ""}
