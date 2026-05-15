@@ -11,7 +11,7 @@ const config: Config = {
       colors: {
         // Brand accent (single saturated red, the only loud color in the system)
         brand: {
-          DEFAULT: "#e60023",
+          DEFAULT: "#800020",
           pressed: "#cc001f"
         },
 

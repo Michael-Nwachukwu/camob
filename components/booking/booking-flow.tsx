@@ -202,7 +202,7 @@ export function BookingFlow({
                     }}
                     className={cn(
                       "rounded-md p-5 text-left transition-all hover:-translate-y-0.5",
-                      active ? "bg-red-700 text-canvas shadow-ambient" : "bg-surface-card text-ink hover:bg-surface-deep"
+                      active ? "bg-brand/90 text-canvas shadow-ambient" : "bg-surface-card text-ink hover:bg-surface-deep"
                     )}
                   >
                     <p className="font-serif text-xl">{item.shortName} Maisonette</p>
