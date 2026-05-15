@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { format } from "date-fns";
-import { CreditCard, Landmark, AlertCircle, CheckCircle2 } from "lucide-react";
+import { CreditCard, Landmark, AlertCircle, CheckCircle2, ChevronLeft } from "lucide-react";
 import { apartmentTypes } from "@/lib/data/camob";
 import { AvailabilityCalendar } from "@/components/booking/availability-calendar";
 import type { ApartmentTypeId, BookingQuote, UnitAvailabilityDay } from "@/lib/types";
@@ -34,6 +34,10 @@ export function BookingFlow({
   const [formState, setFormState] = useState<SubmissionState>({ status: "idle" });
   const [isPending, startTransition] = useTransition();
   const [submitting, setSubmitting] = useState(false);
+  const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(
+    initialCheckIn && initialCheckOut ? 3 : initialApartmentTypeId ? 2 : 1
+  );
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     startTransition(async () => {
@@ -69,6 +73,7 @@ export function BookingFlow({
 
   const discountAmount = quote && discount ? Math.round((quote.subtotal * discount.pct) / 100) : 0;
   const finalTotal = quote ? quote.total - discountAmount : 0;
+  const canProceedFromStep2 = !!checkIn && !!checkOut;
 
   function handleDateSelect(value: string) {
     if (!checkIn || (checkIn && checkOut)) {
@@ -166,8 +171,14 @@ export function BookingFlow({
     window.location.href = `/booking/success?bookingId=${payload.booking.id}`;
   }
 
+  // On mobile: show only the active step's section. On lg+: always show everything.
+  function stepVis(target: 1 | 2 | 3) {
+    return mobileStep === target ? "block" : "hidden lg:block";
+  }
+
   return (
-    <div className="relative pb-20 pt-24 md:pt-32">
+    <div className="relative pt-24 lg:pb-20 md:pt-32">
+      {/* Page header */}
       <div className="mx-auto max-w-7xl px-4 md:px-6">
         <p className="font-serif text-sm italic text-mute">— check availability</p>
         <h1 className="mt-3 max-w-3xl font-serif text-[36px] leading-[1.05] text-ink md:text-[64px]" style={{ letterSpacing: "-1.4px" }}>
@@ -175,97 +186,119 @@ export function BookingFlow({
           <br />
           <span className="italic text-brand">We'll hold the unit</span> while you finish up.
         </h1>
-        <p className="mt-4 max-w-2xl text-base leading-[1.6] text-body md:text-lg">
+        <p className="mt-4 hidden max-w-2xl text-base leading-[1.6] text-body md:block md:text-lg">
           Holds last 15 minutes. Paystack confirms instantly; bank transfers go to
           us for a quick manual check.
         </p>
       </div>
 
-      <div className="mx-auto mt-10 grid max-w-7xl gap-8 px-4 md:px-6 lg:grid-cols-[1.1fr_0.9fr]">
+      {/* Mobile step indicator */}
+      <div className="mx-auto mt-8 max-w-7xl px-4 md:px-6 lg:hidden">
+        <MobileStepIndicator current={mobileStep} />
+      </div>
+
+      {/* Main grid */}
+      <div className="mx-auto mt-6 grid max-w-7xl gap-8 px-4 md:px-6 lg:mt-10 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-6">
-          {/* Unit picker */}
-          <div className="rounded-lg bg-canvas p-6 shadow-ambient md:p-7">
-            <p className="font-serif text-sm italic text-mute">— which maisonette?</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {apartmentTypes.map((item) => {
-                const active = apartmentTypeId === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      setApartmentTypeId(item.id);
-                      setCheckIn(undefined);
-                      setCheckOut(undefined);
-                      setHoldId(undefined);
-                      setFormState({ status: "idle" });
-                    }}
-                    className={cn(
-                      "rounded-md p-5 text-left transition-all hover:-translate-y-0.5",
-                      active ? "bg-brand/90 text-canvas shadow-ambient" : "bg-surface-card text-ink hover:bg-surface-deep"
-                    )}
-                  >
-                    <p className="font-serif text-xl">{item.shortName} Maisonette</p>
-                    <p className={cn("mt-1 text-sm", active ? "text-canvas/75" : "text-mute")}>
-                      {formatCurrency(item.ratePerNight)} / night · up to {item.maxGuests} guests
-                    </p>
-                  </button>
-                );
-              })}
+
+          {/* Back navigation (mobile steps 2 and 3 only) */}
+          {mobileStep > 1 ? (
+            <button
+              type="button"
+              onClick={() => setMobileStep((s) => (s - 1) as 1 | 2 | 3)}
+              className="lg:hidden flex items-center gap-1 font-serif text-sm italic text-mute hover:text-ink transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Back
+            </button>
+          ) : null}
+
+          {/* ── Step 1: Unit picker ── */}
+          <div className={stepVis(1)}>
+            <div className="rounded-lg bg-canvas p-6 shadow-ambient md:p-7">
+              <p className="font-serif text-sm italic text-mute">— which maisonette?</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {apartmentTypes.map((item) => {
+                  const active = apartmentTypeId === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setApartmentTypeId(item.id);
+                        setCheckIn(undefined);
+                        setCheckOut(undefined);
+                        setHoldId(undefined);
+                        setFormState({ status: "idle" });
+                      }}
+                      className={cn(
+                        "rounded-md p-5 text-left transition-all hover:-translate-y-0.5",
+                        active ? "bg-brand/90 text-canvas shadow-ambient" : "bg-surface-card text-ink hover:bg-surface-deep"
+                      )}
+                    >
+                      <p className="font-serif text-xl">{item.shortName} Maisonette</p>
+                      <p className={cn("mt-1 text-sm", active ? "text-canvas/75" : "text-mute")}>
+                        {formatCurrency(item.ratePerNight)} / night · up to {item.maxGuests} guests
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
-          {/* Calendar */}
-          <AvailabilityCalendar
-            apartmentTypeId={apartmentTypeId}
-            days={days}
-            checkIn={checkIn}
-            checkOut={checkOut}
-            onMonthChange={setMonth}
-            onDateSelect={handleDateSelect}
-          />
+          {/* ── Step 2: Availability calendar ── */}
+          <div className={stepVis(2)}>
+            <AvailabilityCalendar
+              apartmentTypeId={apartmentTypeId}
+              days={days}
+              checkIn={checkIn}
+              checkOut={checkOut}
+              onMonthChange={setMonth}
+              onDateSelect={handleDateSelect}
+            />
+          </div>
 
-          {/* Guest form */}
-          <form onSubmit={handleSubmit} className="rounded-lg bg-canvas p-6 shadow-ambient md:p-8">
-            <p className="font-serif text-sm italic text-mute">— your details</p>
-            <h2 className="mt-1 font-serif text-3xl text-ink" style={{ letterSpacing: "-0.6px" }}>Just the basics</h2>
+          {/* ── Step 3: Guest details + payment ── */}
+          <div className={stepVis(3)}>
+            <form ref={formRef} onSubmit={handleSubmit} className="rounded-lg bg-canvas p-6 shadow-ambient md:p-8">
+              <p className="font-serif text-sm italic text-mute">— your details</p>
+              <h2 className="mt-1 font-serif text-3xl text-ink" style={{ letterSpacing: "-0.6px" }}>Just the basics</h2>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <FormField name="fullName" label="Full name" required />
-              <FormField name="email" label="Email" type="email" required />
-              <FormField name="phone" label="Phone (with country code)" required placeholder="+234…" />
-              <div>
-                <label className="text-xs font-semibold uppercase tracking-[0.18em] text-mute">Guests</label>
-                <select
-                  name="guests"
-                  defaultValue={initialGuests ?? Math.min(2, apartment.maxGuests)}
-                  className="mt-1.5 h-11 w-full rounded-md bg-canvas px-3 text-sm text-ink ring-1 ring-hairline focus:outline-none focus:ring-2 focus:ring-focus-ring"
-                >
-                  {Array.from({ length: apartment.maxGuests }).map((_, index) => (
-                    <option key={index + 1} value={index + 1}>
-                      {index + 1} guest{index + 1 > 1 ? "s" : ""}
-                    </option>
-                  ))}
-                </select>
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <FormField name="fullName" label="Full name" required />
+                <FormField name="email" label="Email" type="email" required />
+                <FormField name="phone" label="Phone (with country code)" required placeholder="+234…" />
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-[0.18em] text-mute">Guests</label>
+                  <select
+                    name="guests"
+                    defaultValue={initialGuests ?? Math.min(2, apartment.maxGuests)}
+                    className="mt-1.5 h-11 w-full rounded-md bg-canvas px-3 text-sm text-ink ring-1 ring-hairline focus:outline-none focus:ring-2 focus:ring-focus-ring"
+                  >
+                    {Array.from({ length: apartment.maxGuests }).map((_, index) => (
+                      <option key={index + 1} value={index + 1}>
+                        {index + 1} guest{index + 1 > 1 ? "s" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.18em] text-mute">
+                    Anything we should know? (optional)
+                  </label>
+                  <textarea
+                    name="specialRequests"
+                    rows={3}
+                    className="mt-1.5 w-full rounded-md bg-canvas px-3 py-3 text-sm text-ink ring-1 ring-hairline focus:outline-none focus:ring-2 focus:ring-focus-ring"
+                    placeholder="Late flight, early breakfast, picking up the keys for a parent…"
+                  />
+                </div>
               </div>
-              <div className="md:col-span-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.18em] text-mute">
-                  Anything we should know? (optional)
-                </label>
-                <textarea
-                  name="specialRequests"
-                  rows={3}
-                  className="mt-1.5 w-full rounded-md bg-canvas px-3 py-3 text-sm text-ink ring-1 ring-hairline focus:outline-none focus:ring-2 focus:ring-focus-ring"
-                  placeholder="Late flight, early breakfast, picking up the keys for a parent…"
-                />
-              </div>
-            </div>
 
-            <div>
-              {/* Payment */}
               <div className="mt-8">
                 <p className="font-serif text-sm italic text-mute">— how you'd like to pay</p>
-                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <PaymentOption
                     active={paymentMethod === "paystack"}
                     onClick={() => setPaymentMethod("paystack")}
@@ -284,14 +317,12 @@ export function BookingFlow({
               </div>
 
               {formState.status !== "idle" ? (
-                <div
-                  className={cn(
-                    "mt-6 flex items-start gap-2 rounded-md px-4 py-3 text-sm",
-                    formState.status === "success"
-                      ? "bg-success-pale text-success"
-                      : "bg-surface-card text-danger ring-1 ring-danger/20"
-                  )}
-                >
+                <div className={cn(
+                  "mt-6 flex items-start gap-2 rounded-md px-4 py-3 text-sm",
+                  formState.status === "success"
+                    ? "bg-success-pale text-success"
+                    : "bg-surface-card text-danger ring-1 ring-danger/20"
+                )}>
                   {formState.status === "success"
                     ? <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
                     : <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />}
@@ -299,21 +330,21 @@ export function BookingFlow({
                 </div>
               ) : null}
 
+              {/* Desktop-only submit — mobile uses the sticky bar */}
               <button
                 disabled={isPending || submitting}
-                className="mt-8 inline-flex h-12 items-center rounded-full bg-brand px-7 text-sm font-bold text-white shadow-ambient transition-all hover:-translate-y-0.5 hover:bg-brand-pressed disabled:translate-y-0 disabled:bg-stone disabled:shadow-none"
+                className="mt-8 hidden h-12 items-center rounded-full bg-brand px-7 text-sm font-bold text-white shadow-ambient transition-all hover:-translate-y-0.5 hover:bg-brand-pressed disabled:translate-y-0 disabled:bg-stone disabled:shadow-none lg:inline-flex"
               >
                 {submitting
                   ? "Working on it…"
                   : paymentMethod === "paystack" ? "Continue to payment →" : "Reserve with bank transfer →"}
               </button>
-            </div>
-
-          </form>
+            </form>
+          </div>
         </div>
 
-        {/* Summary aside */}
-        <aside>
+        {/* Summary aside — desktop only */}
+        <aside className="hidden lg:block">
           <div className="sticky top-24 rounded-lg bg-canvas p-7 shadow-scrim md:p-8">
             <p className="font-serif text-sm italic text-mute">— your stay</p>
             <h2 className="mt-1 font-serif text-2xl text-ink" style={{ letterSpacing: "-0.4px" }}>{apartment.name}</h2>
@@ -354,9 +385,7 @@ export function BookingFlow({
                 <hr className="my-5 border-hairline-soft" />
                 <div className="flex items-baseline justify-between">
                   <span className="font-serif text-base italic text-ink">Total</span>
-                  <span className="font-serif text-3xl text-ink">
-                    {formatCurrency(finalTotal)}
-                  </span>
+                  <span className="font-serif text-3xl text-ink">{formatCurrency(finalTotal)}</span>
                 </div>
               </>
             ) : null}
@@ -365,59 +394,92 @@ export function BookingFlow({
               We hold the unit for 15 minutes once you submit. Paystack confirms
               automatically; bank transfer waits for a quick manual check.
             </div>
-
-            <div className="hidden sm:block">
-              {/* Payment */}
-              <div className="mt-8">
-                <p className="font-serif text-sm italic text-mute">— how you'd like to pay</p>
-                <div className="mt-3 grid gap-3 md:grid-cols-2">
-                  <PaymentOption
-                    active={paymentMethod === "paystack"}
-                    onClick={() => setPaymentMethod("paystack")}
-                    icon={<CreditCard className="h-5 w-5" />}
-                    title="Paystack"
-                    note="Card or bank app. Confirms the booking instantly."
-                  />
-                  <PaymentOption
-                    active={paymentMethod === "bank_transfer"}
-                    onClick={() => setPaymentMethod("bank_transfer")}
-                    icon={<Landmark className="h-5 w-5" />}
-                    title="Bank transfer"
-                    note="We'll send account details and check it in a few hours."
-                  />
-                </div>
-              </div>
-
-              {formState.status !== "idle" ? (
-                <div
-                  className={cn(
-                    "mt-6 flex items-start gap-2 rounded-md px-4 py-3 text-sm",
-                    formState.status === "success"
-                      ? "bg-success-pale text-success"
-                      : "bg-surface-card text-danger ring-1 ring-danger/20"
-                  )}
-                >
-                  {formState.status === "success"
-                    ? <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                    : <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />}
-                  <span>{formState.message}</span>
-                </div>
-              ) : null}
-
-              <button
-                disabled={isPending || submitting}
-                className="mt-8 inline-flex h-12 items-center rounded-full bg-brand px-7 text-sm font-bold text-white shadow-ambient transition-all hover:-translate-y-0.5 hover:bg-brand-pressed disabled:translate-y-0 disabled:bg-stone disabled:shadow-none"
-              >
-                {submitting
-                  ? "Working on it…"
-                  : paymentMethod === "paystack" ? "Continue to payment →" : "Reserve with bank transfer →"}
-              </button>
-            </div>
-
-
           </div>
         </aside>
       </div>
+
+      {/* ── Mobile sticky bottom action bar ── */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-hairline bg-canvas/95 shadow-scrim backdrop-blur-sm lg:hidden">
+        <div className="mx-auto max-w-lg px-4 py-3">
+          {/* Running mini-summary */}
+          <div className="mb-2.5 flex items-center justify-between gap-3 text-sm">
+            <p className="truncate font-serif italic text-ink">
+              {apartment.shortName} Maisonette
+              {checkIn ? ` · ${formatDate(checkIn)}` : ""}
+              {checkOut ? ` → ${formatDate(checkOut)}` : ""}
+            </p>
+            {quote ? (
+              <p className="flex-shrink-0 font-bold text-ink">{formatCurrency(finalTotal)}</p>
+            ) : (
+              <p className="flex-shrink-0 text-xs text-mute">
+                {mobileStep === 2 ? (checkIn ? "pick check-out →" : "tap a date to start") : ""}
+              </p>
+            )}
+          </div>
+
+          {/* Primary CTA */}
+          {mobileStep < 3 ? (
+            <button
+              type="button"
+              disabled={mobileStep === 2 && !canProceedFromStep2}
+              onClick={() => setMobileStep((s) => (s + 1) as 2 | 3)}
+              className="inline-flex h-12 w-full items-center justify-center rounded-full bg-brand text-sm font-bold text-white shadow-ambient transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-stone disabled:shadow-none"
+            >
+              {mobileStep === 1 ? "Continue to dates →" : "Continue with these dates →"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={isPending || submitting}
+              onClick={() => formRef.current?.requestSubmit()}
+              className="inline-flex h-12 w-full items-center justify-center rounded-full bg-brand text-sm font-bold text-white shadow-ambient transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-stone disabled:shadow-none"
+            >
+              {submitting
+                ? "Working on it…"
+                : paymentMethod === "paystack" ? "Continue to payment →" : "Reserve with bank transfer →"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileStepIndicator({ current }: { current: 1 | 2 | 3 }) {
+  const steps = [
+    { n: 1 as const, label: "Unit" },
+    { n: 2 as const, label: "Dates" },
+    { n: 3 as const, label: "Details" }
+  ];
+
+  return (
+    <div className="flex items-start">
+      {steps.map((step, i) => (
+        <Fragment key={step.n}>
+          <div className="flex flex-col items-center gap-1.5">
+            <div className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-colors",
+              current === step.n ? "bg-brand text-canvas shadow-ambient" :
+              current > step.n ? "bg-ink text-canvas" :
+              "bg-surface-card text-mute"
+            )}>
+              {current > step.n ? "✓" : step.n}
+            </div>
+            <span className={cn(
+              "text-[10px] font-semibold uppercase tracking-[0.12em]",
+              current >= step.n ? "text-ink" : "text-mute"
+            )}>
+              {step.label}
+            </span>
+          </div>
+          {i < steps.length - 1 ? (
+            <div className={cn(
+              "mx-2 mt-4 h-px flex-1 transition-colors",
+              current >= i + 2 ? "bg-brand" : "bg-hairline"
+            )} />
+          ) : null}
+        </Fragment>
+      ))}
     </div>
   );
 }
