@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { env } from "@/lib/env";
 import { getBookingByIdAsync } from "@/lib/services/repository";
+import { signBookingId } from "@/lib/booking-tokens";
 
 export async function initializePaystackPayment(bookingId: string, email: string) {
   const booking = await getBookingByIdAsync(bookingId);
@@ -30,7 +31,7 @@ export async function initializePaystackPayment(bookingId: string, email: string
         bookingId: booking.id,
         apartmentTypeId: booking.apartmentTypeId
       },
-      callback_url: `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/booking/success?bookingId=${booking.id}`
+      callback_url: `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/booking/success?bookingId=${booking.id}&token=${signBookingId(booking.id)}`
     })
   });
 

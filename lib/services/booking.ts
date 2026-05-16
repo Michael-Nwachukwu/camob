@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
 import {
   createDraftHold,
-  createDraftHoldAsync,
   getApartmentTypeById,
   getBookingById,
   getBookingByIdAsync,
+  hasDatabase,
   saveBooking,
   saveBookingAsync,
   updateBooking,
@@ -14,10 +14,9 @@ import {
   calculateQuote,
   calculateQuoteAsync,
   findAvailableUnit,
-  findAvailableUnitAsync,
-  isRangeAvailable,
-  isRangeAvailableAsync
+  isRangeAvailable
 } from "@/lib/services/availability";
+import { createBookingHoldTransactional, HoldUnavailableError } from "@/lib/services/holds";
 import type { Booking, CreateBookingInput, PaymentMethod, PaymentStatus, BookingStatus } from "@/lib/types";
 
 function newPaymentReference() {
@@ -102,30 +101,47 @@ export async function createBookingHoldAsync(input: {
     throw new Error("Guest count exceeds unit capacity");
   }
 
-  if (!(await isRangeAvailableAsync(input.apartmentTypeId, input.checkIn, input.checkOut))) {
-    throw new Error("Selected dates are no longer available");
+  const quote = await calculateQuoteAsync(input.apartmentTypeId, input.checkIn, input.checkOut);
+
+  // DB path: create the hold inside a serializable transaction so two
+  // racing requests can't both claim the same unit/window.
+  if (hasDatabase()) {
+    try {
+      const created = await createBookingHoldTransactional(input);
+      const finalized = await updateBookingAsync(created.id, {
+        subtotal: quote.subtotal,
+        serviceCharge: quote.serviceCharge,
+        total: quote.total
+      });
+      return { hold: finalized ?? created, quote };
+    } catch (error) {
+      if (error instanceof HoldUnavailableError) {
+        throw new Error(error.message);
+      }
+      throw error;
+    }
   }
 
-  const unit = await findAvailableUnitAsync(input.apartmentTypeId, input.checkIn, input.checkOut);
+  // Memory-only dev fallback.
+  if (!isRangeAvailable(input.apartmentTypeId, input.checkIn, input.checkOut)) {
+    throw new Error("Selected dates are no longer available");
+  }
+  const unit = findAvailableUnit(input.apartmentTypeId, input.checkIn, input.checkOut);
   if (!unit) {
     throw new Error("No unit available for the selected dates");
   }
-
-  const quote = await calculateQuoteAsync(input.apartmentTypeId, input.checkIn, input.checkOut);
-  const hold = await createDraftHoldAsync({
+  const hold = createDraftHold({
     apartmentTypeId: input.apartmentTypeId,
     unitId: unit.id,
     checkIn: input.checkIn,
     checkOut: input.checkOut,
     guests: input.guests
   });
-
   hold.subtotal = quote.subtotal;
   hold.serviceCharge = quote.serviceCharge;
   hold.total = quote.total;
-  const savedHold = await saveBookingAsync(hold);
-
-  return { hold: savedHold, quote };
+  saveBooking(hold);
+  return { hold, quote };
 }
 
 export function finalizeBooking(input: CreateBookingInput & { holdId?: string }) {

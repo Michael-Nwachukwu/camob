@@ -43,7 +43,7 @@ type PrismaBookingWithRelations = PrismaBookingModel & {
   payments: PrismaPaymentModel[];
 };
 
-function hasDatabase() {
+export function hasDatabase() {
   return Boolean(env.databaseUrl);
 }
 
@@ -173,16 +173,12 @@ export async function getRateAsync(apartmentTypeId: ApartmentTypeId) {
     return getMemoryRate(apartmentTypeId);
   }
 
-  try {
-    const record = await prisma.ratePlan.findFirst({
-      where: { apartmentTypeId },
-      orderBy: [{ startsAt: "desc" }, { id: "desc" }]
-    });
+  const record = await prisma.ratePlan.findFirst({
+    where: { apartmentTypeId },
+    orderBy: [{ startsAt: "desc" }, { id: "desc" }]
+  });
 
-    return record ? mapPrismaRate(record) : getMemoryRate(apartmentTypeId);
-  } catch {
-    return getMemoryRate(apartmentTypeId);
-  }
+  return record ? mapPrismaRate(record) : getMemoryRate(apartmentTypeId);
 }
 
 export function updateRate(apartmentTypeId: ApartmentTypeId, nightlyRate: number, serviceCharge: number) {
@@ -204,36 +200,30 @@ export function updateRate(apartmentTypeId: ApartmentTypeId, nightlyRate: number
 }
 
 export async function updateRateAsync(apartmentTypeId: ApartmentTypeId, nightlyRate: number, serviceCharge: number) {
-  const memoryRate = updateRate(apartmentTypeId, nightlyRate, serviceCharge);
-
   if (!hasDatabase()) {
-    return memoryRate;
+    return updateRate(apartmentTypeId, nightlyRate, serviceCharge);
   }
 
-  try {
-    const existing = await prisma.ratePlan.findFirst({
-      where: { apartmentTypeId, startsAt: null, endsAt: null },
-      orderBy: { id: "desc" }
-    });
+  const existing = await prisma.ratePlan.findFirst({
+    where: { apartmentTypeId, startsAt: null, endsAt: null },
+    orderBy: { id: "desc" }
+  });
 
-    const record = existing
-      ? await prisma.ratePlan.update({
-          where: { id: existing.id },
-          data: { nightlyRate, serviceCharge }
-        })
-      : await prisma.ratePlan.create({
-          data: {
-            apartmentTypeId,
-            nightlyRate,
-            serviceCharge,
-            currency: "NGN"
-          }
-        });
+  const record = existing
+    ? await prisma.ratePlan.update({
+        where: { id: existing.id },
+        data: { nightlyRate, serviceCharge }
+      })
+    : await prisma.ratePlan.create({
+        data: {
+          apartmentTypeId,
+          nightlyRate,
+          serviceCharge,
+          currency: "NGN"
+        }
+      });
 
-    return mapPrismaRate(record);
-  } catch {
-    return memoryRate;
-  }
+  return mapPrismaRate(record);
 }
 
 export function getBookings() {
@@ -246,35 +236,23 @@ export async function getBookingsAsync() {
     return getMemoryBookings();
   }
 
-  try {
-    await prisma.booking.updateMany({
-      where: {
-        status: "DRAFT_HOLD",
-        expiresAt: {
-          lt: new Date()
-        }
-      },
-      data: {
-        status: "EXPIRED"
-      }
-    });
+  await prisma.booking.updateMany({
+    where: {
+      status: "DRAFT_HOLD",
+      expiresAt: { lt: new Date() }
+    },
+    data: { status: "EXPIRED" }
+  });
 
-    const records = await prisma.booking.findMany({
-      include: {
-        unit: true,
-        payments: {
-          take: 1,
-          orderBy: { createdAt: "desc" }
-        }
-      },
-      orderBy: { createdAt: "desc" }
-    });
+  const records = await prisma.booking.findMany({
+    include: {
+      unit: true,
+      payments: { take: 1, orderBy: { createdAt: "desc" } }
+    },
+    orderBy: { createdAt: "desc" }
+  });
 
-    return records.map(mapPrismaBooking);
-  } catch {
-    expireMemoryHolds();
-    return getMemoryBookings();
-  }
+  return records.map(mapPrismaBooking);
 }
 
 export function getActiveBookings() {
@@ -296,22 +274,15 @@ export async function getBookingByIdAsync(id: string) {
     return getBookingById(id);
   }
 
-  try {
-    const record = await prisma.booking.findUnique({
-      where: { id },
-      include: {
-        unit: true,
-        payments: {
-          take: 1,
-          orderBy: { createdAt: "desc" }
-        }
-      }
-    });
+  const record = await prisma.booking.findUnique({
+    where: { id },
+    include: {
+      unit: true,
+      payments: { take: 1, orderBy: { createdAt: "desc" } }
+    }
+  });
 
-    return record ? mapPrismaBooking(record) : null;
-  } catch {
-    return getBookingById(id);
-  }
+  return record ? mapPrismaBooking(record) : null;
 }
 
 export function saveBooking(booking: Booking) {
@@ -325,95 +296,68 @@ export function saveBooking(booking: Booking) {
 }
 
 export async function saveBookingAsync(booking: Booking) {
-  const memoryBooking = saveBooking(booking);
-
   if (!hasDatabase()) {
-    return memoryBooking;
+    return saveBooking(booking);
   }
 
-  try {
-    const record = await prisma.booking.upsert({
-      where: { id: booking.id },
+  const bookingData = {
+    apartmentTypeId: booking.apartmentTypeId,
+    unitId: booking.unitId,
+    guestFullName: booking.guest.fullName,
+    guestEmail: booking.guest.email,
+    guestPhone: booking.guest.phone,
+    guestCount: booking.guest.guests,
+    specialRequests: booking.guest.specialRequests,
+    checkIn: new Date(booking.checkIn),
+    checkOut: new Date(booking.checkOut),
+    status: toPrismaStatus(booking.status),
+    subtotal: booking.subtotal,
+    serviceCharge: booking.serviceCharge,
+    total: booking.total,
+    createdAt: new Date(booking.createdAt),
+    expiresAt: booking.expiresAt ? new Date(booking.expiresAt) : null
+  };
+
+  const record = await prisma.booking.upsert({
+    where: { id: booking.id },
+    update: bookingData,
+    create: { id: booking.id, ...bookingData },
+    include: {
+      unit: true,
+      payments: { take: 1, orderBy: { createdAt: "desc" } }
+    }
+  });
+
+  if (booking.paymentReference && booking.paymentMethod && booking.paymentStatus) {
+    await prisma.payment.upsert({
+      where: { reference: booking.paymentReference },
       update: {
-        apartmentTypeId: booking.apartmentTypeId,
-        unitId: booking.unitId,
-        guestFullName: booking.guest.fullName,
-        guestEmail: booking.guest.email,
-        guestPhone: booking.guest.phone,
-        guestCount: booking.guest.guests,
-        specialRequests: booking.guest.specialRequests,
-        checkIn: new Date(booking.checkIn),
-        checkOut: new Date(booking.checkOut),
-        status: toPrismaStatus(booking.status),
-        subtotal: booking.subtotal,
-        serviceCharge: booking.serviceCharge,
-        total: booking.total,
-        createdAt: new Date(booking.createdAt),
-        expiresAt: booking.expiresAt ? new Date(booking.expiresAt) : null
+        bookingId: booking.id,
+        method: toPrismaPaymentMethod(booking.paymentMethod),
+        status: toPrismaPaymentStatus(booking.paymentStatus),
+        amount: booking.total
       },
       create: {
-        id: booking.id,
-        apartmentTypeId: booking.apartmentTypeId,
-        unitId: booking.unitId,
-        guestFullName: booking.guest.fullName,
-        guestEmail: booking.guest.email,
-        guestPhone: booking.guest.phone,
-        guestCount: booking.guest.guests,
-        specialRequests: booking.guest.specialRequests,
-        checkIn: new Date(booking.checkIn),
-        checkOut: new Date(booking.checkOut),
-        status: toPrismaStatus(booking.status),
-        subtotal: booking.subtotal,
-        serviceCharge: booking.serviceCharge,
-        total: booking.total,
-        createdAt: new Date(booking.createdAt),
-        expiresAt: booking.expiresAt ? new Date(booking.expiresAt) : null
-      },
-      include: {
-        unit: true,
-        payments: {
-          take: 1,
-          orderBy: { createdAt: "desc" }
-        }
+        bookingId: booking.id,
+        method: toPrismaPaymentMethod(booking.paymentMethod),
+        status: toPrismaPaymentStatus(booking.paymentStatus),
+        reference: booking.paymentReference,
+        amount: booking.total
       }
     });
 
-    if (booking.paymentReference && booking.paymentMethod && booking.paymentStatus) {
-      await prisma.payment.upsert({
-        where: { reference: booking.paymentReference },
-        update: {
-          bookingId: booking.id,
-          method: toPrismaPaymentMethod(booking.paymentMethod),
-          status: toPrismaPaymentStatus(booking.paymentStatus),
-          amount: booking.total
-        },
-        create: {
-          bookingId: booking.id,
-          method: toPrismaPaymentMethod(booking.paymentMethod),
-          status: toPrismaPaymentStatus(booking.paymentStatus),
-          reference: booking.paymentReference,
-          amount: booking.total
-        }
-      });
+    const refreshedRecord = await prisma.booking.findUnique({
+      where: { id: booking.id },
+      include: {
+        unit: true,
+        payments: { take: 1, orderBy: { createdAt: "desc" } }
+      }
+    });
 
-      const refreshedRecord = await prisma.booking.findUnique({
-        where: { id: booking.id },
-        include: {
-          unit: true,
-          payments: {
-            take: 1,
-            orderBy: { createdAt: "desc" }
-          }
-        }
-      });
-
-      return refreshedRecord ? mapPrismaBooking(refreshedRecord) : memoryBooking;
-    }
-
-    return mapPrismaBooking(record);
-  } catch {
-    return memoryBooking;
+    return refreshedRecord ? mapPrismaBooking(refreshedRecord) : mapPrismaBooking(record);
   }
+
+  return mapPrismaBooking(record);
 }
 
 export function updateBooking(id: string, patch: Partial<Booking>) {
@@ -446,26 +390,20 @@ export function addBlackout(blockout: Omit<BlockedDateRange, "id">) {
 }
 
 export async function addBlackoutAsync(blockout: Omit<BlockedDateRange, "id">) {
-  const memoryBlackout = addBlackout(blockout);
-
   if (!hasDatabase()) {
-    return memoryBlackout;
+    return addBlackout(blockout);
   }
 
-  try {
-    const record = await prisma.blockedDateRange.create({
-      data: {
-        apartmentTypeId: blockout.apartmentTypeId,
-        startDate: new Date(blockout.startDate),
-        endDate: new Date(blockout.endDate),
-        reason: blockout.reason
-      }
-    });
+  const record = await prisma.blockedDateRange.create({
+    data: {
+      apartmentTypeId: blockout.apartmentTypeId,
+      startDate: new Date(blockout.startDate),
+      endDate: new Date(blockout.endDate),
+      reason: blockout.reason
+    }
+  });
 
-    return mapPrismaBlackout(record);
-  } catch {
-    return memoryBlackout;
-  }
+  return mapPrismaBlackout(record);
 }
 
 export function getBlackouts() {
@@ -477,15 +415,11 @@ export async function getBlackoutsAsync() {
     return blackoutStore;
   }
 
-  try {
-    const records = await prisma.blockedDateRange.findMany({
-      orderBy: { startDate: "asc" }
-    });
+  const records = await prisma.blockedDateRange.findMany({
+    orderBy: { startDate: "asc" }
+  });
 
-    return records.length ? records.map(mapPrismaBlackout) : blackoutStore;
-  } catch {
-    return blackoutStore;
-  }
+  return records.map(mapPrismaBlackout);
 }
 
 export function createDraftHold(params: {

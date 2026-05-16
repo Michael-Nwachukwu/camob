@@ -51,7 +51,16 @@ export const siteCopy = {
   checkOut: "12:00 PM",
   whatsapp: "https://wa.me/2348100000000",
   googleMapsLink: "https://maps.google.com/?q=Ogombo+Lekki+Lagos",
-  conciergeEmail: "reservations@camobresidence.com"
+  conciergeEmail: "reservations@camobresidence.com",
+  // Bank transfer details for the manual-pay flow. Owner to replace before
+  // launch — these are public-safe but should match the live account.
+  bankTransfer: {
+    bankName: "GTBank",
+    accountName: "Camob Residence",
+    accountNumber: "0123456789",
+    instructions:
+      "Send the exact total above. Use the booking reference as the transfer narration — we match it the moment the credit lands."
+  }
 };
 
 export const apartmentTypes: ApartmentTypeSummary[] = [

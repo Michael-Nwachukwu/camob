@@ -13,7 +13,9 @@ export const env = {
   resendApiKey: process.env.RESEND_API_KEY,
   notificationFromEmail: process.env.NOTIFICATION_FROM_EMAIL ?? "reservations@camobresidence.com",
   bookingAlertEmail: process.env.BOOKING_ALERT_EMAIL ?? "camobresidence@gmail.com",
-  mapboxToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+  mapboxToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
+  cronSecret: process.env.CRON_SECRET,
+  bookingLookupSecret: process.env.BOOKING_LOOKUP_SECRET
 };
 
 export function assertProductionEnv() {

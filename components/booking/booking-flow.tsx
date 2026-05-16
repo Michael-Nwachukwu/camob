@@ -155,6 +155,8 @@ export function BookingFlow({
       return;
     }
 
+    const token = payload.token as string | undefined;
+
     if (paymentMethod === "paystack") {
       const paystackResponse = await fetch("/api/payments/paystack/initialize", {
         method: "POST",
@@ -168,7 +170,12 @@ export function BookingFlow({
       }
     }
 
-    window.location.href = `/booking/success?bookingId=${payload.booking.id}`;
+    if (paymentMethod === "bank_transfer") {
+      window.location.href = `/booking/bank-transfer?bookingId=${payload.booking.id}${token ? `&token=${token}` : ""}`;
+      return;
+    }
+
+    window.location.href = `/booking/success?bookingId=${payload.booking.id}${token ? `&token=${token}` : ""}`;
   }
 
   // On mobile: show only the active step's section. On lg+: always show everything.

@@ -1,12 +1,17 @@
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
+import { verifyBookingToken } from "@/lib/booking-tokens";
 
 export default async function Page({
   searchParams
 }: {
-  searchParams: Promise<{ bookingId?: string }>;
+  searchParams: Promise<{ bookingId?: string; token?: string }>;
 }) {
   const params = await searchParams;
+  const lookupHref =
+    params.bookingId && params.token && verifyBookingToken(params.bookingId, params.token)
+      ? `/booking/${params.bookingId}?token=${params.token}`
+      : null;
 
   return (
     <div className="bg-surface-soft pb-20 pt-24 md:pt-32">
@@ -29,6 +34,14 @@ export default async function Page({
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
+            {lookupHref ? (
+              <Link
+                href={lookupHref}
+                className="inline-flex h-12 items-center rounded-md bg-ink px-5 text-sm font-bold text-canvas hover:bg-ink-soft"
+              >
+                View booking status
+              </Link>
+            ) : null}
             <Link
               href="/"
               className="inline-flex h-12 items-center rounded-md bg-brand px-5 text-sm font-bold text-white hover:bg-brand-pressed"
