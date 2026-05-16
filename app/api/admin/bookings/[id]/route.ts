@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth-helpers";
 import { updateBookingAsync } from "@/lib/services/repository";
 import { bookingUpdateSchema } from "@/lib/validators/booking";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   const body = await request.json();
   const parsed = bookingUpdateSchema.safeParse(body);
 

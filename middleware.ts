@@ -3,10 +3,19 @@ import { auth } from "@/auth";
 
 export default auth((request) => {
   const pathname = request.nextUrl.pathname;
+  const isApiAdmin = pathname.startsWith("/api/admin");
   const isSignInPage = pathname === "/admin/sign-in";
-  const isAdminRoute = pathname.startsWith("/admin");
+  const isAdminPage = pathname.startsWith("/admin");
 
-  if (!isAdminRoute) {
+  // Admin JSON endpoints: respond with 401 instead of redirecting.
+  if (isApiAdmin) {
+    if (!request.auth) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return NextResponse.next();
+  }
+
+  if (!isAdminPage) {
     return NextResponse.next();
   }
 
@@ -24,5 +33,5 @@ export default auth((request) => {
 });
 
 export const config = {
-  matcher: ["/admin/:path*"]
+  matcher: ["/admin/:path*", "/api/admin/:path*"]
 };

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   createDraftHold,
   createDraftHoldAsync,
@@ -17,7 +18,34 @@ import {
   isRangeAvailable,
   isRangeAvailableAsync
 } from "@/lib/services/availability";
-import type { CreateBookingInput } from "@/lib/types";
+import type { Booking, CreateBookingInput, PaymentMethod, PaymentStatus, BookingStatus } from "@/lib/types";
+
+function newPaymentReference() {
+  return `CAMOB_${randomUUID()}`;
+}
+
+function statusesForPaymentMethod(method: PaymentMethod): { status: BookingStatus; paymentStatus: PaymentStatus } {
+  if (method === "paystack") {
+    return { status: "pending_payment", paymentStatus: "initialized" };
+  }
+  // Bank transfer never auto-confirms. Admin marks it paid after seeing the
+  // money land — until then the dates are held but not earned.
+  return { status: "pending_payment", paymentStatus: "pending_review" };
+}
+
+function applyFinalizePatch(booking: Booking, input: CreateBookingInput) {
+  const { status, paymentStatus } = statusesForPaymentMethod(input.paymentMethod);
+
+  booking.apartmentTypeId = input.apartmentTypeId;
+  booking.checkIn = input.checkIn;
+  booking.checkOut = input.checkOut;
+  booking.paymentMethod = input.paymentMethod;
+  booking.paymentStatus = paymentStatus;
+  booking.status = status;
+  booking.guest = input.guest;
+  // Idempotency: only mint a reference once per booking.
+  booking.paymentReference = booking.paymentReference ?? newPaymentReference();
+}
 
 export function createBookingHold(input: {
   apartmentTypeId: CreateBookingInput["apartmentTypeId"];
@@ -114,17 +142,10 @@ export function finalizeBooking(input: CreateBookingInput & { holdId?: string })
     booking = holdResult.hold;
   }
 
-  booking.apartmentTypeId = input.apartmentTypeId;
-  booking.checkIn = input.checkIn;
-  booking.checkOut = input.checkOut;
-  booking.paymentMethod = input.paymentMethod;
-  booking.paymentStatus = input.paymentMethod === "paystack" ? "initialized" : "pending_review";
-  booking.status = input.paymentMethod === "paystack" ? "pending_payment" : "confirmed";
-  booking.guest = input.guest;
+  applyFinalizePatch(booking, input);
   booking.subtotal = quote.subtotal;
   booking.serviceCharge = quote.serviceCharge;
   booking.total = quote.total;
-  booking.paymentReference = `CAMOB_${Date.now()}`;
 
   saveBooking(booking);
 
@@ -148,17 +169,10 @@ export async function finalizeBookingAsync(input: CreateBookingInput & { holdId?
     booking = holdResult.hold;
   }
 
-  booking.apartmentTypeId = input.apartmentTypeId;
-  booking.checkIn = input.checkIn;
-  booking.checkOut = input.checkOut;
-  booking.paymentMethod = input.paymentMethod;
-  booking.paymentStatus = input.paymentMethod === "paystack" ? "initialized" : "pending_review";
-  booking.status = input.paymentMethod === "paystack" ? "pending_payment" : "confirmed";
-  booking.guest = input.guest;
+  applyFinalizePatch(booking, input);
   booking.subtotal = quote.subtotal;
   booking.serviceCharge = quote.serviceCharge;
   booking.total = quote.total;
-  booking.paymentReference = `CAMOB_${Date.now()}`;
 
   const savedBooking = await saveBookingAsync(booking);
 

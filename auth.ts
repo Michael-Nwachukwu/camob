@@ -2,13 +2,29 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 import { env } from "@/lib/env";
+import { verifyPassword } from "@/lib/password";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1)
 });
 
+function passwordMatches(password: string): boolean {
+  if (env.adminPasswordHash) {
+    return verifyPassword(password, env.adminPasswordHash);
+  }
+
+  // Plaintext fallback exists only for local dev. assertProductionEnv()
+  // refuses to boot in production without ADMIN_PASSWORD_HASH.
+  if (process.env.NODE_ENV === "production") {
+    return false;
+  }
+
+  return password === env.adminPassword;
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  secret: env.nextAuthSecret,
   session: { strategy: "jwt" },
   pages: {
     signIn: "/admin/sign-in"
@@ -28,7 +44,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const { email, password } = parsed.data;
 
-        if (email !== env.adminEmail || password !== env.adminPassword) {
+        const emailMatches = email.toLowerCase() === env.adminEmail.toLowerCase();
+        const pwMatches = passwordMatches(password);
+
+        if (!emailMatches || !pwMatches) {
           return null;
         }
 
