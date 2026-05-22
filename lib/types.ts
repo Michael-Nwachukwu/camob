@@ -64,6 +64,8 @@ export interface Booking {
   total: number;
   createdAt: string;
   expiresAt?: string;
+  cancelledAt?: string;
+  refundAmount?: number;
   paymentMethod?: PaymentMethod;
   paymentStatus?: PaymentStatus;
   paymentReference?: string;

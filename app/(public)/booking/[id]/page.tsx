@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CheckCircle2, Clock, Landmark, AlertCircle, MessageCircle } from "lucide-react";
 import { siteCopy, apartmentTypes } from "@/lib/data/camob";
 import { getBookingByIdAsync } from "@/lib/services/repository";
+import { canCancel } from "@/lib/services/refunds";
 import { verifyBookingToken } from "@/lib/booking-tokens";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Booking } from "@/lib/types";
@@ -12,10 +13,10 @@ export default async function Page({
   searchParams
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ token?: string; cancelled?: string }>;
 }) {
   const { id } = await params;
-  const { token } = await searchParams;
+  const { token, cancelled } = await searchParams;
 
   if (!verifyBookingToken(id, token)) {
     notFound();
@@ -28,6 +29,9 @@ export default async function Page({
 
   const apartment = apartmentTypes.find((item) => item.id === booking.apartmentTypeId);
   const state = stateFor(booking);
+  const cancellable = canCancel(booking);
+  const awaitingRefund = booking.status === "refund_pending";
+  const refunded = booking.status === "refunded";
 
   return (
     <div className="pb-20 pt-24 md:pt-32">
@@ -35,6 +39,12 @@ export default async function Page({
         <Link href="/" className="font-serif text-sm italic text-mute hover:text-ink">
           ← Back to the residence
         </Link>
+
+        {cancelled ? (
+          <div className="mt-6 rounded-md bg-success-pale px-5 py-4 text-sm font-semibold text-success">
+            Your cancellation is in. {awaitingRefund ? "We'll process the refund shortly." : "Nothing further owed."}
+          </div>
+        ) : null}
 
         <div className="mt-6 rounded-lg bg-canvas p-8 shadow-scrim md:p-12">
           <span className={`inline-flex h-12 w-12 items-center justify-center rounded-full ${state.iconBg}`}>
@@ -57,6 +67,17 @@ export default async function Page({
             <Stat label="Total" value={formatCurrency(booking.total)} accent />
           </div>
 
+          {(awaitingRefund || refunded) && booking.refundAmount != null ? (
+            <div className="mt-6 rounded-md bg-surface-card p-5">
+              <p className="font-serif text-sm italic text-mute">— refund</p>
+              <p className="mt-1 text-sm text-body">
+                {refunded ? "Refunded" : "Refund pending"}:{" "}
+                <span className="font-semibold text-ink">{formatCurrency(booking.refundAmount)}</span>
+                {awaitingRefund ? " — usually clears within a few business days." : "."}
+              </p>
+            </div>
+          ) : null}
+
           {booking.paymentMethod === "bank_transfer" && booking.paymentStatus !== "paid" ? (
             <div className="mt-8 rounded-md bg-surface-card p-6">
               <p className="font-serif text-base italic text-ink">Still need to pay?</p>
@@ -73,7 +94,7 @@ export default async function Page({
             </div>
           ) : null}
 
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-8 flex flex-wrap items-center gap-3">
             <a
               href={siteCopy.whatsapp}
               target="_blank"
@@ -82,6 +103,14 @@ export default async function Page({
             >
               <MessageCircle className="h-4 w-4" /> Message us on WhatsApp
             </a>
+            {cancellable ? (
+              <Link
+                href={`/booking/${id}/cancel?token=${token}`}
+                className="font-serif text-sm italic text-mute underline-offset-4 hover:text-danger hover:underline"
+              >
+                Cancel this booking
+              </Link>
+            ) : null}
           </div>
         </div>
       </div>

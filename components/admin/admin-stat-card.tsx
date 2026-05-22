@@ -1,8 +1,19 @@
-export function AdminStatCard({ label, value }: { label: string; value: string | number }) {
+export function AdminStatCard({
+  label,
+  value,
+  hint
+}: {
+  label: string;
+  value: string | number;
+  hint?: string;
+}) {
   return (
-    <div className="rounded-[1.75rem] bg-white p-6 shadow-ambient">
-      <p className="text-xs font-bold uppercase tracking-[0.3em] text-secondary">{label}</p>
-      <p className="mt-4 font-serif text-4xl text-primary">{value}</p>
+    <div className="rounded-lg bg-canvas p-6 shadow-ambient md:p-7">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mute">{label}</p>
+      <p className="mt-3 font-serif text-3xl text-ink md:text-4xl" style={{ letterSpacing: "-0.6px" }}>
+        {value}
+      </p>
+      {hint ? <p className="mt-2 font-serif text-sm italic text-mute">{hint}</p> : null}
     </div>
   );
 }

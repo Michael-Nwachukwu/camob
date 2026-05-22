@@ -39,18 +39,7 @@ const config: Config = {
         success: "#103c25",
         "success-pale": "#c7f0da",
         danger: "#9e0a0a",
-        "focus-ring": "#435ee5",
-
-        // Legacy aliases retained so we don't break tailwind classes elsewhere
-        primary: "#000000",
-        "primary-container": "#262622",
-        secondary: "#62625b",
-        "secondary-fixed": "#e5e5e0",
-        surface: "#fbfbf9",
-        "surface-low": "#f6f6f3",
-        "surface-card-legacy": "#f6f6f3",
-        muted: "#62625b",
-        outline: "#dadad3"
+        "focus-ring": "#435ee5"
       },
       fontFamily: {
         serif: ["Iowan Old Style", "Palatino Linotype", "Book Antiqua", "Georgia", "serif"],

@@ -1,7 +1,19 @@
-import { apartmentTypes } from "@/lib/data/camob";
 import { revalidatePath } from "next/cache";
+import { apartmentTypes } from "@/lib/data/camob";
 import { getRateAsync, getUnits, updateRateAsync } from "@/lib/services/repository";
 import { formatCurrency } from "@/lib/utils";
+
+async function updateRates(formData: FormData) {
+  "use server";
+  await updateRateAsync(
+    String(formData.get("apartmentTypeId")) as "one-bedroom" | "two-bedroom",
+    Number(formData.get("nightlyRate")),
+    Number(formData.get("serviceCharge"))
+  );
+  revalidatePath("/admin/units");
+  revalidatePath("/book");
+  revalidatePath("/");
+}
 
 export default async function Page() {
   const rates = await Promise.all(
@@ -12,56 +24,114 @@ export default async function Page() {
   );
 
   return (
-    <div className="space-y-8">
-      <section className="grid gap-6 lg:grid-cols-2">
+    <div className="space-y-6">
+      <section>
+        <p className="font-serif text-sm italic text-mute">— inventory</p>
+        <h2 className="mt-1 font-serif text-3xl text-ink md:text-4xl" style={{ letterSpacing: "-0.6px" }}>
+          Units & rates
+        </h2>
+      </section>
+
+      <section className="grid gap-5 lg:grid-cols-2">
         {apartmentTypes.map((apartment) => {
-          const rate = rates.find((entry) => entry.apartmentId === apartment.id)?.rate ?? {
-            nightlyRate: apartment.ratePerNight,
-            serviceCharge: 0
-          };
+          const rate =
+            rates.find((entry) => entry.apartmentId === apartment.id)?.rate ?? {
+              nightlyRate: apartment.ratePerNight,
+              serviceCharge: 0
+            };
+          const apartmentUnits = getUnits(apartment.id);
 
           return (
-            <div key={apartment.id} className="rounded-[2rem] bg-white p-8 shadow-ambient">
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-secondary">{apartment.shortName}</p>
-              <h2 className="mt-3 font-serif text-3xl text-primary">{apartment.name}</h2>
-              <p className="mt-3 text-sm leading-7 text-muted">{apartment.description}</p>
-              <div className="mt-5 space-y-2 text-sm text-primary">
-                {getUnits(apartment.id).map((unit) => (
-                  <p key={unit.id}>
-                    {unit.name} • {unit.floorLabel}
-                  </p>
-                ))}
+            <div key={apartment.id} className="rounded-lg bg-canvas p-7 shadow-ambient md:p-8">
+              <p className="font-serif text-sm italic text-mute">— {apartment.shortName.toLowerCase()}</p>
+              <h3 className="mt-1 font-serif text-2xl text-ink md:text-3xl" style={{ letterSpacing: "-0.4px" }}>
+                {apartment.name}
+              </h3>
+              <p className="mt-3 max-w-md text-sm leading-[1.6] text-body">{apartment.description}</p>
+
+              <dl className="mt-6 grid gap-3 sm:grid-cols-2">
+                <Stat label="Rate / night" value={formatCurrency(rate.nightlyRate)} accent />
+                <Stat label="Service charge" value={formatCurrency(rate.serviceCharge)} />
+                <Stat label="Sleeps" value={`${apartment.maxGuests} guests`} />
+                <Stat label="Units" value={`${apartmentUnits.length}`} />
+              </dl>
+
+              <div className="mt-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mute">Configured units</p>
+                <ul className="mt-2 space-y-1 text-sm text-body">
+                  {apartmentUnits.map((unit) => (
+                    <li key={unit.id} className="font-serif">
+                      <span className="text-ink">{unit.name}</span>
+                      <span className="text-mute"> · {unit.floorLabel}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <p className="mt-6 text-lg font-semibold text-secondary">{formatCurrency(rate.nightlyRate)} per night</p>
             </div>
           );
         })}
       </section>
 
-      <form
-        action={async (formData) => {
-          "use server";
-          await updateRateAsync(
-            String(formData.get("apartmentTypeId")) as "one-bedroom" | "two-bedroom",
-            Number(formData.get("nightlyRate")),
-            Number(formData.get("serviceCharge"))
-          );
-          revalidatePath("/admin/units");
-          revalidatePath("/book");
-        }}
-        className="rounded-[2rem] bg-white p-8 shadow-ambient"
-      >
-        <h2 className="font-serif text-3xl text-primary">Rate override</h2>
-        <div className="mt-6 grid gap-5 md:grid-cols-3">
-          <select name="apartmentTypeId" className="rounded-2xl border border-outline bg-surface-low px-4 py-3">
-            <option value="one-bedroom">1-Bedroom</option>
-            <option value="two-bedroom">2-Bedroom</option>
-          </select>
-          <input name="nightlyRate" type="number" placeholder="Nightly rate" className="rounded-2xl border border-outline bg-surface-low px-4 py-3" />
-          <input name="serviceCharge" type="number" placeholder="Service charge" className="rounded-2xl border border-outline bg-surface-low px-4 py-3" />
+      <form action={updateRates} className="rounded-lg bg-canvas p-7 shadow-ambient md:p-8">
+        <p className="font-serif text-sm italic text-mute">— change pricing</p>
+        <h3 className="mt-1 font-serif text-2xl text-ink md:text-3xl" style={{ letterSpacing: "-0.4px" }}>
+          Rate override
+        </h3>
+        <p className="mt-2 max-w-xl text-sm text-body">
+          Saves to the active rate plan. Public pricing on the home + booking pages updates on next render.
+        </p>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <div>
+            <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mute">Apartment</label>
+            <select
+              name="apartmentTypeId"
+              className="mt-1.5 h-11 w-full rounded-md bg-canvas px-3 text-sm text-ink ring-1 ring-hairline focus:outline-none focus:ring-2 focus:ring-focus-ring"
+            >
+              <option value="one-bedroom">1-Bedroom Maisonette</option>
+              <option value="two-bedroom">2-Bedroom Maisonette</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mute">Nightly rate (₦)</label>
+            <input
+              name="nightlyRate"
+              type="number"
+              required
+              min={1}
+              placeholder="95000"
+              className="mt-1.5 h-11 w-full rounded-md bg-canvas px-3 text-sm text-ink ring-1 ring-hairline placeholder:text-ash focus:outline-none focus:ring-2 focus:ring-focus-ring"
+            />
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mute">Service charge (₦)</label>
+            <input
+              name="serviceCharge"
+              type="number"
+              required
+              min={0}
+              placeholder="15000"
+              className="mt-1.5 h-11 w-full rounded-md bg-canvas px-3 text-sm text-ink ring-1 ring-hairline placeholder:text-ash focus:outline-none focus:ring-2 focus:ring-focus-ring"
+            />
+          </div>
         </div>
-        <button className="mt-6 rounded-full bg-primary px-6 py-3 font-semibold text-white">Update rates</button>
+
+        <button
+          type="submit"
+          className="mt-6 inline-flex h-12 items-center rounded-full bg-brand px-6 text-sm font-bold text-white shadow-ambient transition-all hover:-translate-y-0.5 hover:bg-brand-pressed"
+        >
+          Save rates
+        </button>
       </form>
+    </div>
+  );
+}
+
+function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className="rounded-md bg-surface-card p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mute">{label}</p>
+      <p className={`mt-1 font-serif ${accent ? "text-2xl text-brand" : "text-lg text-ink"}`}>{value}</p>
     </div>
   );
 }

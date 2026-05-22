@@ -60,6 +60,18 @@ export const siteCopy = {
     accountNumber: "0123456789",
     instructions:
       "Send the exact total above. Use the booking reference as the transfer narration — we match it the moment the credit lands."
+  },
+  // Moderate cancellation policy. Brackets are evaluated against hours until
+  // check-in at the moment the guest cancels. Refunds apply to the nightly
+  // subtotal only — the service charge is non-refundable once a stay is booked.
+  cancellationPolicy: {
+    summary: "Free cancellation up to 7 days before check-in. Half back up to 48 hours before. Inside 48 hours, the stay is non-refundable.",
+    serviceChargeRefundable: false,
+    brackets: [
+      { minHoursBeforeCheckIn: 168, refundPct: 100, label: "7+ days before check-in" },
+      { minHoursBeforeCheckIn: 48, refundPct: 50, label: "2–7 days before check-in" },
+      { minHoursBeforeCheckIn: 0, refundPct: 0, label: "Within 48 hours of check-in" }
+    ]
   }
 };
 

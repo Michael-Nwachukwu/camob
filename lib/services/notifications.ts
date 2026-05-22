@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSiteCopy } from "@/lib/services/repository";
 
 async function logNotification(params: {
-  event: "booking_created" | "payment_confirmed";
+  event: "booking_created" | "payment_confirmed" | "booking_cancelled";
   recipients: string[];
   payload: Record<string, unknown>;
 }) {
@@ -27,7 +27,7 @@ async function logNotification(params: {
 }
 
 export async function sendBookingNotification(params: {
-  event: "booking_created" | "payment_confirmed";
+  event: "booking_created" | "payment_confirmed" | "booking_cancelled";
   guestEmail: string;
   guestName: string;
   bookingId: string;
@@ -56,6 +56,8 @@ export async function sendBookingNotification(params: {
     subject:
       params.event === "payment_confirmed"
         ? `Camob Residence booking confirmed: ${params.bookingId}`
+        : params.event === "booking_cancelled"
+        ? `Camob Residence cancellation: ${params.bookingId}`
         : `Camob Residence booking received: ${params.bookingId}`,
     html: `
       <div style="font-family: Arial, sans-serif; color: #191c1d; line-height: 1.5;">

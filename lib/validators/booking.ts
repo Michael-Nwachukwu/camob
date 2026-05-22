@@ -63,3 +63,20 @@ export const rateSchema = z.object({
   nightlyRate: z.coerce.number().min(1),
   serviceCharge: z.coerce.number().min(0)
 });
+
+export const manualBookingSchema = z.object({
+  apartmentTypeId: z.enum(["one-bedroom", "two-bedroom"]),
+  checkIn: z.string(),
+  checkOut: z.string(),
+  paymentMethod: z.enum(["paystack", "bank_transfer"]),
+  status: z.enum(["confirmed", "pending_payment", "admin_blocked"]),
+  paymentStatus: z.enum(["initialized", "paid", "failed", "pending_review"]),
+  notes: z.string().optional(),
+  guest: z.object({
+    fullName: z.string().min(2),
+    email: z.string().email(),
+    phone: z.string().min(7),
+    guests: z.coerce.number().min(1).max(8),
+    specialRequests: z.string().optional()
+  })
+});

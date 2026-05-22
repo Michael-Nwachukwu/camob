@@ -225,3 +225,87 @@ export async function confirmBookingPaymentAsync(bookingId: string, reference: s
 
   return booking;
 }
+
+/** Admin-only: create a booking on behalf of a guest (walk-in / WhatsApp). */
+export async function createManualBookingAsync(input: {
+  apartmentTypeId: CreateBookingInput["apartmentTypeId"];
+  checkIn: string;
+  checkOut: string;
+  paymentMethod: PaymentMethod;
+  status: BookingStatus;
+  paymentStatus: PaymentStatus;
+  guest: CreateBookingInput["guest"];
+}) {
+  const apartment = getApartmentTypeById(input.apartmentTypeId);
+  if (!apartment) {
+    throw new Error("Apartment type not found");
+  }
+  if (input.guest.guests > apartment.maxGuests) {
+    throw new Error("Guest count exceeds unit capacity");
+  }
+
+  const quote = await calculateQuoteAsync(input.apartmentTypeId, input.checkIn, input.checkOut);
+  if (quote.nights < 1) {
+    throw new Error("Check-out must be after check-in");
+  }
+
+  // Reuse the hold pathway so we get the same race-safe unit allocation.
+  if (hasDatabase()) {
+    let createdId: string;
+    try {
+      const hold = await createBookingHoldTransactional({
+        apartmentTypeId: input.apartmentTypeId,
+        checkIn: input.checkIn,
+        checkOut: input.checkOut,
+        guests: input.guest.guests
+      });
+      createdId = hold.id;
+    } catch (error) {
+      if (error instanceof HoldUnavailableError) {
+        throw new Error(error.message);
+      }
+      throw error;
+    }
+
+    const finalized = await updateBookingAsync(createdId, {
+      status: input.status,
+      paymentMethod: input.paymentMethod,
+      paymentStatus: input.paymentStatus,
+      paymentReference: `CAMOB_MANUAL_${randomUUID()}`,
+      guest: input.guest,
+      subtotal: quote.subtotal,
+      serviceCharge: quote.serviceCharge,
+      total: quote.total
+    });
+    if (!finalized) {
+      throw new Error("Failed to finalize manual booking");
+    }
+    return { booking: finalized, quote };
+  }
+
+  // Memory fallback (dev).
+  if (!isRangeAvailable(input.apartmentTypeId, input.checkIn, input.checkOut)) {
+    throw new Error("Selected dates are no longer available");
+  }
+  const unit = findAvailableUnit(input.apartmentTypeId, input.checkIn, input.checkOut);
+  if (!unit) {
+    throw new Error("No unit available for the selected dates");
+  }
+  const hold = createDraftHold({
+    apartmentTypeId: input.apartmentTypeId,
+    unitId: unit.id,
+    checkIn: input.checkIn,
+    checkOut: input.checkOut,
+    guests: input.guest.guests
+  });
+  hold.status = input.status;
+  hold.paymentMethod = input.paymentMethod;
+  hold.paymentStatus = input.paymentStatus;
+  hold.paymentReference = `CAMOB_MANUAL_${randomUUID()}`;
+  hold.guest = input.guest;
+  hold.subtotal = quote.subtotal;
+  hold.serviceCharge = quote.serviceCharge;
+  hold.total = quote.total;
+  saveBooking(hold);
+  return { booking: hold, quote };
+}

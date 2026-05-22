@@ -89,6 +89,8 @@ function mapPrismaBooking(record: PrismaBookingWithRelations): Booking {
     total: record.total,
     createdAt: record.createdAt.toISOString(),
     expiresAt: record.expiresAt?.toISOString(),
+    cancelledAt: record.cancelledAt?.toISOString(),
+    refundAmount: record.refundAmount ?? undefined,
     paymentMethod: fromPrismaPaymentMethod(latestPayment?.method),
     paymentStatus: fromPrismaPaymentStatus(latestPayment?.status),
     paymentReference: latestPayment?.reference
@@ -315,7 +317,9 @@ export async function saveBookingAsync(booking: Booking) {
     serviceCharge: booking.serviceCharge,
     total: booking.total,
     createdAt: new Date(booking.createdAt),
-    expiresAt: booking.expiresAt ? new Date(booking.expiresAt) : null
+    expiresAt: booking.expiresAt ? new Date(booking.expiresAt) : null,
+    cancelledAt: booking.cancelledAt ? new Date(booking.cancelledAt) : null,
+    refundAmount: booking.refundAmount ?? null
   };
 
   const record = await prisma.booking.upsert({
@@ -462,6 +466,69 @@ export async function createDraftHoldAsync(params: {
 }) {
   const hold = createDraftHold(params);
   return saveBookingAsync(hold);
+}
+
+export async function getPaymentsAsync(limit = 100) {
+  if (!hasDatabase()) {
+    return [];
+  }
+
+  const records = await prisma.payment.findMany({
+    take: limit,
+    orderBy: { createdAt: "desc" },
+    include: {
+      booking: {
+        select: {
+          id: true,
+          apartmentTypeId: true,
+          guestFullName: true,
+          guestEmail: true,
+          checkIn: true,
+          checkOut: true,
+          status: true
+        }
+      }
+    }
+  });
+
+  return records.map((record) => ({
+    id: record.id,
+    bookingId: record.bookingId,
+    reference: record.reference,
+    method: record.method.toLowerCase() as PaymentMethod,
+    status: record.status.toLowerCase() as PaymentStatus,
+    amount: record.amount,
+    createdAt: record.createdAt.toISOString(),
+    booking: {
+      id: record.booking.id,
+      apartmentTypeId: record.booking.apartmentTypeId as ApartmentTypeId,
+      guestFullName: record.booking.guestFullName,
+      guestEmail: record.booking.guestEmail,
+      checkIn: record.booking.checkIn.toISOString().slice(0, 10),
+      checkOut: record.booking.checkOut.toISOString().slice(0, 10),
+      status: record.booking.status.toLowerCase() as BookingStatus
+    }
+  }));
+}
+
+export async function getNotificationLogsAsync(limit = 100) {
+  if (!hasDatabase()) {
+    return [];
+  }
+
+  const records = await prisma.notificationLog.findMany({
+    take: limit,
+    orderBy: { createdAt: "desc" }
+  });
+
+  return records.map((record) => ({
+    id: record.id,
+    channel: record.channel,
+    event: record.event,
+    recipient: record.recipient,
+    createdAt: record.createdAt.toISOString(),
+    payload: record.payload as Record<string, unknown> | null
+  }));
 }
 
 export function getAdminSummary() {

@@ -1,77 +1,201 @@
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
+import { Plus } from "lucide-react";
+import { auth } from "@/auth";
+import { StatusPill } from "@/components/admin/status-pill";
 import {
   getApartmentTypeById,
   getBookingsAsync,
   getUnits,
   updateBookingAsync
 } from "@/lib/services/repository";
+import { processPaystackRefundAsync, markRefundedAsync } from "@/lib/services/refunds";
 import type { BookingStatus } from "@/lib/types";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
+
+const ACTIONABLE_STATUSES: { value: BookingStatus; label: string }[] = [
+  { value: "confirmed", label: "Confirm" },
+  { value: "cancelled", label: "Cancel" },
+  { value: "refund_pending", label: "Mark refund pending" },
+  { value: "refunded", label: "Mark refunded" },
+  { value: "admin_blocked", label: "Block" }
+];
+
+async function requireAdmin() {
+  const session = await auth();
+  if (!session?.user) throw new Error("Unauthorized");
+}
+
+async function updateBookingStatus(formData: FormData) {
+  "use server";
+  await requireAdmin();
+  const id = String(formData.get("id"));
+  const status = String(formData.get("status")) as BookingStatus;
+  if (!id || !status) return;
+  await updateBookingAsync(id, { status });
+  revalidatePath("/admin");
+  revalidatePath("/admin/bookings");
+}
+
+async function processPaystackRefund(formData: FormData) {
+  "use server";
+  await requireAdmin();
+  const id = String(formData.get("id"));
+  if (!id) return;
+  await processPaystackRefundAsync(id);
+  revalidatePath("/admin");
+  revalidatePath("/admin/bookings");
+}
+
+async function markRefunded(formData: FormData) {
+  "use server";
+  await requireAdmin();
+  const id = String(formData.get("id"));
+  if (!id) return;
+  await markRefundedAsync(id);
+  revalidatePath("/admin");
+  revalidatePath("/admin/bookings");
+}
 
 export default async function Page() {
   const bookings = await getBookingsAsync();
 
   return (
-    <div className="rounded-[2rem] bg-white p-8 shadow-ambient">
-      <div className="flex items-center justify-between">
-        <h2 className="font-serif text-3xl text-primary">Bookings</h2>
-        <form
-          action={async (formData) => {
-            "use server";
-            const id = String(formData.get("id"));
-            const status = String(formData.get("status")) as BookingStatus;
-            await updateBookingAsync(id, { status });
-            revalidatePath("/admin");
-            revalidatePath("/admin/bookings");
-          }}
-          className="flex items-center gap-3"
-        >
-          <input name="id" placeholder="Booking ID" className="rounded-full border border-outline px-4 py-2 text-sm" />
-          <select name="status" className="rounded-full border border-outline px-4 py-2 text-sm">
-            <option value="confirmed">Confirm</option>
-            <option value="cancelled">Cancel</option>
-            <option value="refund_pending">Refund pending</option>
-          </select>
-          <button className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white">Update</button>
-        </form>
-      </div>
+    <div className="space-y-6">
+      <section className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="font-serif text-sm italic text-mute">— operations</p>
+          <h2 className="mt-1 font-serif text-3xl text-ink md:text-4xl" style={{ letterSpacing: "-0.6px" }}>
+            Bookings
+          </h2>
+          <p className="mt-2 font-serif text-sm italic text-mute">
+            {bookings.length} total · sort: newest first
+          </p>
+        </div>
 
-      <div className="mt-8 overflow-x-auto">
-        <table className="min-w-full text-left text-sm">
-          <thead className="text-xs uppercase tracking-[0.3em] text-secondary">
-            <tr>
-              <th className="pb-4">Booking</th>
-              <th className="pb-4">Apartment</th>
-              <th className="pb-4">Unit</th>
-              <th className="pb-4">Guest</th>
-              <th className="pb-4">Payment</th>
-              <th className="pb-4">Status</th>
-              <th className="pb-4">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bookings.map((booking) => {
-              const apartment = getApartmentTypeById(booking.apartmentTypeId);
-              const unit = getUnits(booking.apartmentTypeId).find((item) => item.id === booking.unitId);
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/admin/bookings/new"
+            className="inline-flex h-11 items-center gap-1.5 rounded-full bg-brand px-5 text-sm font-bold text-white shadow-ambient hover:bg-brand-pressed"
+          >
+            <Plus className="h-4 w-4" /> New booking
+          </Link>
 
-              return (
-                <tr key={booking.id} className="border-t border-outline/60 align-top">
-                  <td className="py-4 font-semibold text-primary">{booking.id}</td>
-                  <td className="py-4 text-muted">{apartment?.name}</td>
-                  <td className="py-4 text-muted">{unit?.name}</td>
-                  <td className="py-4 text-muted">
-                    <p>{booking.guest.fullName}</p>
-                    <p>{booking.guest.email}</p>
+          <form action={updateBookingStatus} className="flex flex-wrap items-center gap-2 rounded-full bg-canvas p-1.5 shadow-ambient">
+            <input
+              name="id"
+              placeholder="Booking ID"
+              className="h-10 w-44 rounded-full bg-surface-card px-4 text-sm text-ink placeholder:text-ash focus:outline-none focus:ring-2 focus:ring-focus-ring"
+            />
+            <select
+              name="status"
+              defaultValue="confirmed"
+              className="h-10 rounded-full bg-surface-card px-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-focus-ring"
+            >
+              {ACTIONABLE_STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              className="inline-flex h-10 items-center rounded-full bg-ink px-5 text-sm font-bold text-canvas hover:bg-ink-soft"
+            >
+              Update
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <section className="rounded-lg bg-canvas shadow-ambient">
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead className="text-[11px] uppercase tracking-[0.18em] text-mute">
+              <tr className="border-b border-hairline">
+                <th className="px-6 py-4 font-semibold">Reference</th>
+                <th className="px-3 py-4 font-semibold">Apartment</th>
+                <th className="px-3 py-4 font-semibold">Unit</th>
+                <th className="px-3 py-4 font-semibold">Guest</th>
+                <th className="px-3 py-4 font-semibold">Dates</th>
+                <th className="px-3 py-4 font-semibold">Payment</th>
+                <th className="px-3 py-4 font-semibold">Status</th>
+                <th className="px-6 py-4 text-right font-semibold">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bookings.map((booking) => {
+                const apartment = getApartmentTypeById(booking.apartmentTypeId);
+                const unit = getUnits(booking.apartmentTypeId).find((item) => item.id === booking.unitId);
+                return (
+                  <tr key={booking.id} className="border-b border-hairline-soft align-top last:border-0">
+                    <td className="px-6 py-4 font-mono text-xs text-ink">{booking.id}</td>
+                    <td className="px-3 py-4 text-body">{apartment?.shortName}</td>
+                    <td className="px-3 py-4 text-body">{unit?.name ?? "—"}</td>
+                    <td className="px-3 py-4 text-body">
+                      <p className="font-semibold text-ink">{booking.guest.fullName}</p>
+                      <p className="text-xs text-mute">{booking.guest.email}</p>
+                      <p className="text-xs text-mute">{booking.guest.phone}</p>
+                    </td>
+                    <td className="px-3 py-4 font-serif text-sm italic text-body">
+                      {formatDate(booking.checkIn)} → {formatDate(booking.checkOut)}
+                    </td>
+                    <td className="px-3 py-4 text-body">
+                      <p className="capitalize">{booking.paymentMethod?.replaceAll("_", " ") ?? "—"}</p>
+                      {booking.paymentStatus ? (
+                        <p className="text-xs italic text-mute">{booking.paymentStatus.replaceAll("_", " ")}</p>
+                      ) : null}
+                    </td>
+                    <td className="px-3 py-4">
+                      <StatusPill status={booking.status} />
+                      {booking.status === "refund_pending" ? (
+                        <div className="mt-2 space-y-1.5">
+                          {booking.refundAmount != null ? (
+                            <p className="text-xs italic text-mute">
+                              refund {formatCurrency(booking.refundAmount)}
+                            </p>
+                          ) : null}
+                          {booking.paymentMethod === "paystack" ? (
+                            <form action={processPaystackRefund}>
+                              <input type="hidden" name="id" value={booking.id} />
+                              <button
+                                type="submit"
+                                className="inline-flex h-8 items-center rounded-full bg-brand px-3 text-xs font-bold text-white hover:bg-brand-pressed"
+                              >
+                                Refund via Paystack
+                              </button>
+                            </form>
+                          ) : (
+                            <form action={markRefunded}>
+                              <input type="hidden" name="id" value={booking.id} />
+                              <button
+                                type="submit"
+                                className="inline-flex h-8 items-center rounded-full bg-ink px-3 text-xs font-bold text-canvas hover:bg-ink-soft"
+                              >
+                                Mark refunded
+                              </button>
+                            </form>
+                          )}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="px-6 py-4 text-right font-semibold text-ink">
+                      {formatCurrency(booking.total)}
+                    </td>
+                  </tr>
+                );
+              })}
+              {bookings.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-6 py-16 text-center font-serif text-sm italic text-mute">
+                    No bookings yet.
                   </td>
-                  <td className="py-4 capitalize text-muted">{booking.paymentMethod?.replace("_", " ") ?? "n/a"}</td>
-                  <td className="py-4 capitalize text-primary">{booking.status.replaceAll("_", " ")}</td>
-                  <td className="py-4 text-primary">{formatCurrency(booking.total)}</td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }

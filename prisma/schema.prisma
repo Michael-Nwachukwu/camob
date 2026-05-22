@@ -75,6 +75,8 @@ model Booking {
   total           Int
   createdAt       DateTime       @default(now())
   expiresAt       DateTime?
+  cancelledAt     DateTime?
+  refundAmount    Int?
   apartmentType   ApartmentType  @relation(fields: [apartmentTypeId], references: [id])
   unit            Unit           @relation(fields: [unitId], references: [id])
   payments        Payment[]

@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
+import { authConfig } from "@/auth.config";
 import { env } from "@/lib/env";
 import { verifyPassword } from "@/lib/password";
 
@@ -24,11 +25,7 @@ function passwordMatches(password: string): boolean {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  secret: env.nextAuthSecret,
-  session: { strategy: "jwt" },
-  pages: {
-    signIn: "/admin/sign-in"
-  },
+  ...authConfig,
   providers: [
     Credentials({
       name: "Credentials",
