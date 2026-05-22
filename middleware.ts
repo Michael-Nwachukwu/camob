@@ -36,5 +36,8 @@ export default auth((request) => {
 });
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"]
+  // Include the bare paths explicitly — `/admin/:path*` alone can miss the
+  // exact `/admin` (and `/api/admin`) entry point depending on the
+  // path-matching version, which would leave the dashboard ungated.
+  matcher: ["/admin", "/admin/:path*", "/api/admin", "/api/admin/:path*"]
 };
