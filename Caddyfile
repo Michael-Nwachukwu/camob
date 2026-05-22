@@ -1,0 +1,6 @@
+# DOMAIN is read from .env.production. With a real domain + DNS pointed at the
+# server, Caddy fetches and renews a Let's Encrypt certificate automatically.
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy app:3000
+}

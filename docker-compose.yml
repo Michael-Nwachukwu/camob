@@ -1,0 +1,105 @@
+# Camob Residence — self-hosted stack (app + Postgres + Caddy + cron).
+# See docs/deploy-vps.md for the full Hetzner-to-live walkthrough.
+#
+# First run:
+#   docker compose build
+#   docker compose run --rm migrate     # sync the DB schema
+#   docker compose run --rm seed        # apartments / units / rates
+#   docker compose up -d
+#
+# Updates:
+#   git pull && docker compose up -d --build
+#   docker compose run --rm migrate     # only if the schema changed
+#
+# Remove everything (including the database volume):
+#   docker compose down -v
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: camob
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: camob
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U camob -d camob"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    env_file: .env.production
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "3000"
+
+  # Hits the hold-expiry endpoint every minute. This is what the Vercel cron
+  # would have done — on a VPS it's just a tiny always-on loop.
+  cron:
+    image: curlimages/curl:8.11.1
+    restart: unless-stopped
+    env_file: .env.production
+    depends_on:
+      - app
+    entrypoint:
+      - sh
+      - -c
+      - |
+        while true; do
+          sleep 60
+          curl -fsS -X POST -H "Authorization: Bearer $${CRON_SECRET}" \
+            http://app:3000/api/cron/expire-holds >/dev/null 2>&1 || true
+        done
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    env_file: .env.production
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+  # ── on-demand tooling (not started by `up`) ──
+  # Run with: docker compose run --rm migrate
+  migrate:
+    build:
+      context: .
+      target: builder
+    env_file: .env.production
+    command: npx prisma db push
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles: ["tools"]
+
+  # Run with: docker compose run --rm seed
+  seed:
+    build:
+      context: .
+      target: builder
+    env_file: .env.production
+    command: npm run db:seed
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles: ["tools"]
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:
