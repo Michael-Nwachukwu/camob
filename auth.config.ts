@@ -7,6 +7,10 @@ import { env } from "@/lib/env";
 // verification — that file is NOT importable from middleware.
 export const authConfig: NextAuthConfig = {
   secret: env.nextAuthSecret,
+  // Required when self-hosting behind a reverse proxy (Caddy). Lets NextAuth
+  // trust the X-Forwarded-Host header so sign-in/out and callbacks resolve the
+  // correct origin. Vercel sets this implicitly; a VPS must opt in.
+  trustHost: true,
   session: { strategy: "jwt" },
   pages: {
     signIn: "/admin/sign-in"
