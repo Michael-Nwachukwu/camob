@@ -168,36 +168,26 @@ export const ratePlans: RatePlan[] = [
   }
 ];
 
+// Drive times are rough estimates — verify/adjust against the real routes.
 export const attractions: Attraction[] = [
   {
     id: "charterhouse-lagos",
     name: "Charterhouse Lagos",
     category: "Culture",
     distanceKm: 0.5,
-    driveTime: "1 min",
+    driveTime: "1 min walk",
     description: "The British school the property was built next to. Parents pick up, drop off, and walk back without a drive.",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuD6zKSxDVSmrMWuvltMlyx188EK7ou06vX3Hq9sbST5VlTJPQdAl2mLhTy5AgFVRishpwckyBAcwNVorzOekEuScVcLkcjqT8GG9U_vqMHX-b4NejxiYxxLQTNn2NAURDsGig5kRChAKimxXhzqWAbFnPT9O8cNpHqyAF1wRjo-zdONoWxK6T0qOQYtIBG5S2qUrsUzlDRXVh0a3WHRjpKKa9FGJPVSfNDGZh2bKXrhuGwUZu7zmgdQLcyQtlnBoDA1p-xXfp5RnEE"
+    image: "/images/charterhouse.png",
+    mapUrl: "https://maps.app.goo.gl/zpKpbXY4GcYECUvYA"
   },
   {
-    id: "barracuda-beach",
-    name: "Barracuda Beach Resort",
-    category: "Beach",
-    distanceKm: 2.8,
-    driveTime: "8 min",
-    description: "Private, calm, and the closest of the Ogombo beaches. Soft white sand, water sports, local food. ₦2,000 entry, negotiable corkage.",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAw97L3hIf9pR_i8N_enZH9ACyPSDvo_3rCXJxfATMUBh5f2cZ9G9S9s9-oIUhJoB_SnfaRyR-9xm1o3lXu4aria3kXxbIDJH-6UpxNY3hEhFqmY46tL-aVLg_8bk1MeybsnYeH83UXrPpXM1Q-Lzd3OdMxsIYcjYTV2GgEta22--F5fSFMJVk6bcavScqKXfnQn7qxCWJv0zl5AJt5CqqT-AsuJJYvpg_YFD7z1YFrdVQPkXBCJZEKmNAr3aTaOVeCe2Vqp67j5eI"
-  },
-  {
-    id: "atican-beach",
-    name: "Atican Beach",
-    category: "Beach",
-    distanceKm: 3.4,
-    driveTime: "10 min",
-    description: "Less crowded, gated parking, and the kind of beach you go to with the family. Swimming, horseback riding, picnics. ₦2,000 a head.",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBsOFAqvP0JKJryLdi5MxjMS6CQuv1nMtt5CaGZvATK0DcKm2HWNxiHIYvY3iDbLAm9q7GWkt37tE1scbv01wbQoq36Te-lGTvw77QEHvCeeVTemYNiq9Z4xp2qMGM0Rxp72AsqjbvKF8urDzKTKL-JqfU-nNh1ToNcuVnvuaVja6c-C1Jh3Zn3mFlS14_WFj8plPetAGGIctUjIEnhwrRM9zJZ_WGKy4nA3TTRG56JjOI9NJE-8qWDPS0lnRqhg6ih4DA5Q24OJHM"
+    id: "cedarcare-hospital",
+    name: "CedarCare Hospital",
+    category: "Health",
+    driveTime: "Under 1 min",
+    description: "The reassurance you hope you never need — a hospital effectively next door. Under a minute away if anything comes up.",
+    image: "/images/cedarcare-hosptal.jpg",
+    mapUrl: "https://maps.app.goo.gl/faeLm7MgF5pxRurk7"
   },
   {
     id: "avista-beach",
@@ -206,38 +196,18 @@ export const attractions: Attraction[] = [
     distanceKm: 1.6,
     driveTime: "5 min",
     description: "The neighbourhood favourite — casual, local, low-key. Good for an afternoon when you don't want to plan anything.",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAcLv9S3TAABJxI0mPz8Tv8uTzRCcejoiAsTrMeHev5rx6Nfa0LUJUNg-UbRPAAKM-tZzrcYyNySJOSZgklPWPyvm2E83kCipeNXcrPJzV3YvvThv9nlZkR31AUgGyDG4B9IRaKFy9r4p4BpCIhA9q61dGcFw6jIXRkwPl-txWtT_5pl8l3kJQfAmmVbWz7osoiX0A7nxAg9usJUKuOQHKJxpo37L4sgvQUWRDANLUfyK6lar8R6MhM-Wu8Iz2qT0oWsRP-a_kJGyM"
+    image: "/images/avista-beach.jpg",
+    mapUrl: "https://maps.app.goo.gl/JgueXE1ihRK7b7Q69"
   },
   {
-    id: "whitedeck-resort",
-    name: "Whitedeck Resort",
+    id: "atican-beach",
+    name: "Atican Beach",
     category: "Beach",
-    distanceKm: 5,
-    driveTime: "12 min",
-    description: "Off Okun Ajah. One of the rare beaches in the area with a pool. Brings a Sunday-with-friends energy.",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAX1pbx9YEznQZUAeNHRK9t_KutR4chy3s5y9C6QU7exAOZfobSlxISbEmNhro8WfqwPQhVe58-nN_pRa0plipXUjOfEZXIj8or25VLXMw1k3OBlHBfR38lIu8GcHQ0aYi99n1dOxMSb38_f8MowUSBpmuG8ju57VFp_8m1xoL8xwAGqD-EAnBX6Pv2_sRo187P7cqhoq6PzMOE4QEbApV2d4op-LdkqFQCtO_M0WmIPi7bYKI6SjCYsoXrDXTAyRO2Wqq59FzKUNU"
-  },
-  {
-    id: "santa-cruz-beach",
-    name: "Santa Cruz Beach",
-    category: "Beach",
-    distanceKm: 3.7,
-    driveTime: "11 min",
-    description: "A little further out, often quieter than Barracuda. Listed alongside the villa-style stays around the area.",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuB7NNQUcdgrGu-G89G4XgmdljS-OT3K0OGw16GcV0u4erzMh3OoFXlN8r_Rz-M7FzSEInVY0lDKlEXBIYVSjyIbVoxx75xkCWwO0xRZMpItsXBkm0qpQPw_0SKULTsqzjAyzUfJ14-G4Vy5bfhGQDExUS9MZlm4v7yc3BjwXe2XcHbQNGUxzsAXILR2TtMwc0oKH6icSD5GFwHRC_DOvpzX2T5BZXouYeCPG-sz2VhJPAY28MBEGO-pI_HKLCeNWzwYSws07N7JO4Q"
-  },
-  {
-    id: "lekki-epe-expressway",
-    name: "Lekki–Epe Expressway",
-    category: "Culture",
-    distanceKm: 1.2,
-    driveTime: "3 min",
-    description: "The main artery. Easy on-ramp toward VI via the coastal road, or toward Ajah, Sangotedo and the rest of the axis.",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAh0YrajlsEoLbvyuasNqq479gppxA3e9VXk67tco21cvXNOT4n5P02PlPXG12oqqISKNf3l715BjazasP2ZSViamiVlvcIMISAhBUiaH-CpkLvalopIzajPDb7fSYcM0o8RlI2nXPx0w1RmEaVMTSEL5DMqh54JzEGNXxRM47dfOqGxjHpQcUy2B75M-_m2GnezFnw4Dsb9gZCWtiPsFqsT8zCm1I9Pi5Ln0sOPWkAmVUdZx97g48QaTG0KuwwAyynP9T3p3O-dEk"
+    distanceKm: 3.4,
+    driveTime: "10 min",
+    description: "Less crowded, gated parking, and the kind of beach you go to with the family. Swimming, horseback riding, picnics.",
+    image: "/images/atican-beach.jpg",
+    mapUrl: "https://maps.app.goo.gl/JjiSoLLLCtPg4bhMA"
   },
   {
     id: "novare-mall",
@@ -246,8 +216,44 @@ export const attractions: Attraction[] = [
     distanceKm: 5,
     driveTime: "10 min",
     description: "Shoprite, the cinema, the food court, the everyday errands. Where you go when you need things, not vibes.",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuA0IzycaRfygVNHupCTo8KnWqtPluv5JkwuSsdbJjBvOvKbuWwrF7Xgd4qhBPIB4J-8kcaKVtdyrD-CVS20oY6GHRMEshuR0VU8iGtBebi7UMHOyNDRBXEeXbWvCUc4PF7CH7pI5K4DW48FRzzoz6qQuLRvRAdRfEvy4i8nYG-zsmg_KJGW5YFC4nRGPLtWH0CSy2JYCyyQF0hrkzQzGAnYy2mpb_F95XtdpF9eIT5AA77i8GXKR4s94Zxf_OiE6NM4ycQOMlc54HM"
+    image: "/images/novare-mall.jpg",
+    mapUrl: "https://maps.app.goo.gl/JtxiAA4pjq5FKZ4Q7"
+  },
+  {
+    id: "lekki-conservation-centre",
+    name: "Lekki Conservation Centre",
+    category: "Nature",
+    driveTime: "~25 min",
+    description: "The canopy walkway, the savannah boardwalk, the monkeys. A proper day out toward the Lekki end when you want green over sand.",
+    image: "/images/lekki-conservation-center.jpg",
+    mapUrl: "https://maps.app.goo.gl/fuTqNaACyrc6ajGo9"
+  },
+  {
+    id: "lufasi-nature-park",
+    name: "Lufasi Nature Park",
+    category: "Nature",
+    driveTime: "~15 min",
+    description: "A quiet conservation park toward Abijo — birds, big trees, picnic space. The unhurried kind of outing.",
+    image: "/images/lufasi-nature-park.jpg",
+    mapUrl: "https://maps.app.goo.gl/nkdHvwNuRuVJNQz68"
+  },
+  {
+    id: "giwa-gardens",
+    name: "Giwa Gardens",
+    category: "Leisure",
+    driveTime: "~35 min",
+    description: "Water slides, pools and green lawns for a full family day out toward Ibeju-Lekki. Pack a change of clothes.",
+    image: "/images/giwa-gardens.jpg",
+    mapUrl: "https://maps.app.goo.gl/4wwyjsyn3ezW1bzr6"
+  },
+  {
+    id: "genesis-cinema",
+    name: "Genesis Cinemas",
+    category: "Leisure",
+    driveTime: "~10 min",
+    description: "Catch a film without the trek to the island — screens, popcorn, the usual. Easiest plan for a low-key evening.",
+    image: "/images/genesis-cinema.png",
+    mapUrl: "https://maps.app.goo.gl/ne1GpbC3aEPteZ8h6"
   }
 ];
 

@@ -9,7 +9,7 @@ import { attractions, siteCopy } from "@/lib/data/camob";
 import { GoogleMapEmbed } from "@/components/ui/google-map-embed";
 import { cn } from "@/lib/utils";
 
-const CATEGORIES = ["All", "Beach", "Culture", "Retail", "Dining", "Nature", "Sports"] as const;
+const CATEGORIES = ["All", "Beach", "Nature", "Leisure", "Retail", "Culture", "Health"] as const;
 type Cat = typeof CATEGORIES[number];
 
 export function ExplorePage() {
@@ -126,9 +126,21 @@ export function ExplorePage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-mute">{a.category}</p>
                   <h3 className="mt-1.5 font-serif text-xl text-ink">{a.name}</h3>
                   <p className="mt-2 text-sm leading-[1.65] text-body">{a.description}</p>
-                  <p className="mt-4 text-xs font-semibold text-mute">
-                    {a.distanceKm} km · {a.driveTime}
-                  </p>
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <p className="text-xs font-semibold text-mute">
+                      {a.distanceKm ? `${a.distanceKm} km · ` : ""}{a.driveTime}
+                    </p>
+                    {a.mapUrl ? (
+                      <a
+                        href={a.mapUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-brand hover:underline"
+                      >
+                        Map <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : null}
+                  </div>
                 </div>
               </motion.article>
             ))}
