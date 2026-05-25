@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { Plus } from "lucide-react";
 import { auth } from "@/auth";
 import { StatusPill } from "@/components/admin/status-pill";
+import { ActionForm, type ActionResult } from "@/components/admin/action-form";
 import {
   getApartmentTypeById,
   getBookingsAsync,
@@ -21,40 +22,59 @@ const ACTIONABLE_STATUSES: { value: BookingStatus; label: string }[] = [
   { value: "admin_blocked", label: "Block" }
 ];
 
-async function requireAdmin() {
+async function ensureAdmin(): Promise<ActionResult | null> {
   const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
+  return session?.user ? null : { ok: false, error: "Your session expired — sign in again." };
 }
 
-async function updateBookingStatus(formData: FormData) {
+async function updateBookingStatus(formData: FormData): Promise<ActionResult> {
   "use server";
-  await requireAdmin();
+  const denied = await ensureAdmin();
+  if (denied) return denied;
   const id = String(formData.get("id"));
   const status = String(formData.get("status")) as BookingStatus;
-  if (!id || !status) return;
-  await updateBookingAsync(id, { status });
-  revalidatePath("/admin");
-  revalidatePath("/admin/bookings");
+  if (!id) return { ok: false, error: "Enter a booking ID." };
+  try {
+    const booking = await updateBookingAsync(id, { status });
+    if (!booking) return { ok: false, error: `No booking found for "${id}".` };
+    revalidatePath("/admin");
+    revalidatePath("/admin/bookings");
+    return { ok: true, message: `Booking marked ${status.replaceAll("_", " ")}.` };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Couldn't update the booking." };
+  }
 }
 
-async function processPaystackRefund(formData: FormData) {
+async function processPaystackRefund(formData: FormData): Promise<ActionResult> {
   "use server";
-  await requireAdmin();
+  const denied = await ensureAdmin();
+  if (denied) return denied;
   const id = String(formData.get("id"));
-  if (!id) return;
-  await processPaystackRefundAsync(id);
-  revalidatePath("/admin");
-  revalidatePath("/admin/bookings");
+  if (!id) return { ok: false, error: "Missing booking ID." };
+  try {
+    await processPaystackRefundAsync(id);
+    revalidatePath("/admin");
+    revalidatePath("/admin/bookings");
+    return { ok: true, message: "Refund issued via Paystack." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Paystack refund failed." };
+  }
 }
 
-async function markRefunded(formData: FormData) {
+async function markRefunded(formData: FormData): Promise<ActionResult> {
   "use server";
-  await requireAdmin();
+  const denied = await ensureAdmin();
+  if (denied) return denied;
   const id = String(formData.get("id"));
-  if (!id) return;
-  await markRefundedAsync(id);
-  revalidatePath("/admin");
-  revalidatePath("/admin/bookings");
+  if (!id) return { ok: false, error: "Missing booking ID." };
+  try {
+    await markRefundedAsync(id);
+    revalidatePath("/admin");
+    revalidatePath("/admin/bookings");
+    return { ok: true, message: "Marked as refunded." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Couldn't update the booking." };
+  }
 }
 
 export default async function Page() {
@@ -81,7 +101,12 @@ export default async function Page() {
             <Plus className="h-4 w-4" /> New booking
           </Link>
 
-          <form action={updateBookingStatus} className="flex flex-wrap items-center gap-2 rounded-full bg-canvas p-1.5 shadow-ambient">
+          <ActionForm
+            action={updateBookingStatus}
+            loadingText="Updating booking…"
+            successText="Booking updated."
+            className="flex flex-wrap items-center gap-2 rounded-full bg-canvas p-1.5 shadow-ambient"
+          >
             <input
               name="id"
               placeholder="Booking ID"
@@ -104,7 +129,7 @@ export default async function Page() {
             >
               Update
             </button>
-          </form>
+          </ActionForm>
         </div>
       </section>
 
@@ -156,7 +181,12 @@ export default async function Page() {
                             </p>
                           ) : null}
                           {booking.paymentMethod === "paystack" ? (
-                            <form action={processPaystackRefund}>
+                            <ActionForm
+                              action={processPaystackRefund}
+                              loadingText="Issuing Paystack refund…"
+                              successText="Refund issued."
+                              confirm={`Refund ${booking.refundAmount != null ? formatCurrency(booking.refundAmount) : "this booking"} via Paystack?`}
+                            >
                               <input type="hidden" name="id" value={booking.id} />
                               <button
                                 type="submit"
@@ -164,9 +194,14 @@ export default async function Page() {
                               >
                                 Refund via Paystack
                               </button>
-                            </form>
+                            </ActionForm>
                           ) : (
-                            <form action={markRefunded}>
+                            <ActionForm
+                              action={markRefunded}
+                              loadingText="Updating…"
+                              successText="Marked refunded."
+                              confirm="Mark this booking as refunded?"
+                            >
                               <input type="hidden" name="id" value={booking.id} />
                               <button
                                 type="submit"
@@ -174,7 +209,7 @@ export default async function Page() {
                               >
                                 Mark refunded
                               </button>
-                            </form>
+                            </ActionForm>
                           )}
                         </div>
                       ) : null}

@@ -1,18 +1,34 @@
 import { revalidatePath } from "next/cache";
+import { auth } from "@/auth";
+import { ActionForm, type ActionResult } from "@/components/admin/action-form";
 import { apartmentTypes } from "@/lib/data/camob";
 import { getRateAsync, getUnits, updateRateAsync } from "@/lib/services/repository";
+import { rateSchema } from "@/lib/validators/booking";
 import { formatCurrency } from "@/lib/utils";
 
-async function updateRates(formData: FormData) {
+async function updateRates(formData: FormData): Promise<ActionResult> {
   "use server";
-  await updateRateAsync(
-    String(formData.get("apartmentTypeId")) as "one-bedroom" | "two-bedroom",
-    Number(formData.get("nightlyRate")),
-    Number(formData.get("serviceCharge"))
-  );
-  revalidatePath("/admin/units");
-  revalidatePath("/book");
-  revalidatePath("/");
+  const session = await auth();
+  if (!session?.user) {
+    return { ok: false, error: "Your session expired — sign in again." };
+  }
+  const parsed = rateSchema.safeParse({
+    apartmentTypeId: formData.get("apartmentTypeId"),
+    nightlyRate: formData.get("nightlyRate"),
+    serviceCharge: formData.get("serviceCharge")
+  });
+  if (!parsed.success) {
+    return { ok: false, error: "Nightly rate must be at least ₦1 and service charge can't be negative." };
+  }
+  try {
+    await updateRateAsync(parsed.data.apartmentTypeId, parsed.data.nightlyRate, parsed.data.serviceCharge);
+    revalidatePath("/admin/units");
+    revalidatePath("/book");
+    revalidatePath("/");
+    return { ok: true, message: "Rates updated." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Couldn't update rates." };
+  }
 }
 
 export default async function Page() {
@@ -72,7 +88,12 @@ export default async function Page() {
         })}
       </section>
 
-      <form action={updateRates} className="rounded-lg bg-canvas p-7 shadow-ambient md:p-8">
+      <ActionForm
+        action={updateRates}
+        loadingText="Saving rates…"
+        successText="Rates updated."
+        className="rounded-lg bg-canvas p-7 shadow-ambient md:p-8"
+      >
         <p className="font-serif text-sm italic text-mute">— change pricing</p>
         <h3 className="mt-1 font-serif text-2xl text-ink md:text-3xl" style={{ letterSpacing: "-0.4px" }}>
           Rate override
@@ -122,7 +143,7 @@ export default async function Page() {
         >
           Save rates
         </button>
-      </form>
+      </ActionForm>
     </div>
   );
 }

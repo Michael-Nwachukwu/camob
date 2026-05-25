@@ -2,16 +2,17 @@ import { revalidatePath } from "next/cache";
 import { CalendarOff } from "lucide-react";
 import { auth } from "@/auth";
 import { AdminBlackoutCalendar } from "@/components/admin/admin-blackout-calendar";
+import type { ActionResult } from "@/components/admin/action-form";
 import { addBlackoutAsync, getBlackoutsAsync, getApartmentTypeById } from "@/lib/services/repository";
 import { blackoutSchema } from "@/lib/validators/booking";
 import { formatDate } from "@/lib/utils";
 
-async function createBlackout(formData: FormData) {
+async function createBlackout(formData: FormData): Promise<ActionResult> {
   "use server";
 
   const session = await auth();
   if (!session?.user) {
-    throw new Error("Unauthorized");
+    return { ok: false, error: "Your session expired — sign in again." };
   }
 
   const parsed = blackoutSchema.safeParse({
@@ -21,11 +22,16 @@ async function createBlackout(formData: FormData) {
     reason: formData.get("reason")
   });
   if (!parsed.success) {
-    throw new Error("Invalid blackout payload.");
+    return { ok: false, error: "Pick a date range and a reason." };
   }
 
-  await addBlackoutAsync(parsed.data);
-  revalidatePath("/admin/calendar");
+  try {
+    await addBlackoutAsync(parsed.data);
+    revalidatePath("/admin/calendar");
+    return { ok: true, message: "Dates blocked." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Couldn't save the blackout." };
+  }
 }
 
 export default async function Page() {

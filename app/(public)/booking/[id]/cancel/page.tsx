@@ -1,30 +1,34 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { AlertCircle, MessageCircle } from "lucide-react";
 import { siteCopy, apartmentTypes } from "@/lib/data/camob";
 import { getBookingByIdAsync } from "@/lib/services/repository";
 import { cancelBookingAsync, canCancel, computeRefund } from "@/lib/services/refunds";
 import { sendBookingNotification } from "@/lib/services/notifications";
 import { verifyBookingToken } from "@/lib/booking-tokens";
+import { CancelConfirm } from "@/components/booking/cancel-confirm";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
-async function confirmCancellation(formData: FormData) {
+type CancelResult = { ok: true; redirectTo: string } | { ok: false; error: string };
+
+async function confirmCancellation(id: string, token: string): Promise<CancelResult> {
   "use server";
-  const id = String(formData.get("id"));
-  const token = String(formData.get("token"));
   if (!verifyBookingToken(id, token)) {
-    throw new Error("Invalid cancellation link.");
+    return { ok: false, error: "This cancellation link isn't valid." };
   }
 
-  const result = await cancelBookingAsync(id);
-  await sendBookingNotification({
-    event: "booking_cancelled",
-    guestEmail: result.booking.guest.email,
-    guestName: result.booking.guest.fullName,
-    bookingId: result.booking.id
-  });
-
-  redirect(`/booking/${id}?token=${token}&cancelled=1`);
+  try {
+    const result = await cancelBookingAsync(id);
+    await sendBookingNotification({
+      event: "booking_cancelled",
+      guestEmail: result.booking.guest.email,
+      guestName: result.booking.guest.fullName,
+      bookingId: result.booking.id
+    });
+    return { ok: true, redirectTo: `/booking/${id}?token=${token}&cancelled=1` };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Couldn't cancel the booking." };
+  }
 }
 
 export default async function Page({
@@ -100,24 +104,14 @@ export default async function Page({
         </dl>
       </div>
 
-      <form action={confirmCancellation} className="mt-7">
-        <input type="hidden" name="id" value={id} />
-        <input type="hidden" name="token" value={token} />
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="submit"
-            className="inline-flex h-12 items-center rounded-full bg-brand px-6 text-sm font-bold text-white shadow-ambient transition-all hover:-translate-y-0.5 hover:bg-brand-pressed"
-          >
-            {wasPaid && refund.refundAmount > 0 ? "Cancel & request refund" : "Cancel this booking"}
-          </button>
-          <Link
-            href={`/booking/${id}?token=${token}`}
-            className="inline-flex h-12 items-center rounded-full bg-surface-card px-6 text-sm font-bold text-ink hover:bg-surface-deep"
-          >
-            Keep my booking
-          </Link>
-        </div>
-      </form>
+      <div className="mt-7">
+        <CancelConfirm
+          id={id}
+          token={token!}
+          cancel={confirmCancellation}
+          label={wasPaid && refund.refundAmount > 0 ? "Cancel & request refund" : "Cancel this booking"}
+        />
+      </div>
 
       <a
         href={siteCopy.whatsapp}

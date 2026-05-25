@@ -561,21 +561,3 @@ export async function getAdminSummaryAsync() {
     grossRevenue: confirmed.reduce((sum, booking) => sum + booking.total, 0)
   };
 }
-
-export function getStatusTone(status: BookingStatus) {
-  switch (status) {
-    case "confirmed":
-      return "success";
-    case "pending_payment":
-    case "draft_hold":
-      return "warning";
-    case "cancelled":
-    case "expired":
-    case "admin_blocked":
-    case "refund_pending":
-    case "refunded":
-      return "danger";
-    default:
-      return "muted";
-  }
-}
