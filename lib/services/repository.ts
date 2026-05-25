@@ -11,6 +11,7 @@ import type {
 } from "@prisma/client";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
+import { isBlocking } from "@/lib/booking-status";
 import {
   apartmentTypes,
   attractions,
@@ -35,8 +36,6 @@ import type {
 const bookingStore: Booking[] = [...seededBookings];
 const blackoutStore: BlockedDateRange[] = [...blockedDateRanges];
 const rateStore: RatePlan[] = [...ratePlans];
-
-const CANCELLING_STATUSES: BookingStatus[] = ["cancelled", "expired", "refunded"];
 
 type PrismaBookingWithRelations = PrismaBookingModel & {
   unit: PrismaUnit;
@@ -259,12 +258,12 @@ export async function getBookingsAsync() {
 
 export function getActiveBookings() {
   expireMemoryHolds();
-  return bookingStore.filter((booking) => !CANCELLING_STATUSES.includes(booking.status));
+  return bookingStore.filter((booking) => isBlocking(booking.status));
 }
 
 export async function getActiveBookingsAsync() {
   const bookings = await getBookingsAsync();
-  return bookings.filter((booking) => !CANCELLING_STATUSES.includes(booking.status));
+  return bookings.filter((booking) => isBlocking(booking.status));
 }
 
 export function getBookingById(id: string) {

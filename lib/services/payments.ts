@@ -75,7 +75,10 @@ export async function refundPaystackPayment(reference: string, amountNaira: numb
 }
 
 export function verifyPaystackWebhook(body: string, signature: string | null) {
-  const secret = env.paystackWebhookSecret ?? env.paystackSecretKey;
+  // Use `||`, not `??`: an empty PAYSTACK_WEBHOOK_SECRET ("") must fall back to
+  // the secret key (Paystack signs webhooks with the secret key). `??` would
+  // keep the empty string and reject every webhook.
+  const secret = env.paystackWebhookSecret || env.paystackSecretKey;
 
   if (!secret || !signature) {
     return false;

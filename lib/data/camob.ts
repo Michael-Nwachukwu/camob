@@ -89,7 +89,7 @@ export const apartmentTypes: ApartmentTypeSummary[] = [
     maxGuests: 2,
     bedrooms: 1,
     bathrooms: 2,
-    units: 2,
+    units: 1,
     amenities: [
       "Private entrance",
       "Fully furnished living room",
@@ -122,7 +122,7 @@ export const apartmentTypes: ApartmentTypeSummary[] = [
     maxGuests: 4,
     bedrooms: 2,
     bathrooms: 3,
-    units: 2,
+    units: 1,
     amenities: [
       "Private entrance",
       "Fully furnished living room",
@@ -144,11 +144,11 @@ export const apartmentTypes: ApartmentTypeSummary[] = [
   }
 ];
 
+// The property is two maisonettes total — one of each type. A single booking
+// therefore occupies the whole apartment for those dates.
 export const units: Unit[] = [
-  { id: "unit-1a", apartmentTypeId: "one-bedroom", name: "1-Bedroom Maisonette A", floorLabel: "Self-contained, two floors" },
-  { id: "unit-1b", apartmentTypeId: "one-bedroom", name: "1-Bedroom Maisonette B", floorLabel: "Self-contained, two floors" },
-  { id: "unit-2a", apartmentTypeId: "two-bedroom", name: "2-Bedroom Maisonette A", floorLabel: "Self-contained, two floors" },
-  { id: "unit-2b", apartmentTypeId: "two-bedroom", name: "2-Bedroom Maisonette B", floorLabel: "Self-contained, two floors" }
+  { id: "unit-1a", apartmentTypeId: "one-bedroom", name: "1-Bedroom Maisonette", floorLabel: "Self-contained, two floors" },
+  { id: "unit-2a", apartmentTypeId: "two-bedroom", name: "2-Bedroom Maisonette", floorLabel: "Self-contained, two floors" }
 ];
 
 export const ratePlans: RatePlan[] = [
@@ -303,28 +303,6 @@ export const seededBookings: Booking[] = [
     paymentMethod: "bank_transfer",
     paymentStatus: "pending_review",
     paymentReference: "BANK_CAMOB_02"
-  },
-  {
-    id: "booking-03",
-    unitId: "unit-2b",
-    apartmentTypeId: "two-bedroom",
-    checkIn: "2026-04-13",
-    checkOut: "2026-04-16",
-    status: "draft_hold",
-    guest: {
-      fullName: "Favour Ojo",
-      email: "favour@example.com",
-      phone: "+2348000000003",
-      guests: 3
-    },
-    subtotal: 360000,
-    serviceCharge: 15000,
-    total: 375000,
-    createdAt: "2026-03-25T13:00:00.000Z",
-    expiresAt: "2026-03-26T23:59:59.000Z",
-    paymentMethod: "paystack",
-    paymentStatus: "initialized",
-    paymentReference: "PSK_CAMOB_03"
   }
 ];
 

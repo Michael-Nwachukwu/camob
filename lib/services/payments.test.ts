@@ -35,6 +35,17 @@ describe("verifyPaystackWebhook", () => {
     expect(verifyPaystackWebhook(body, sig)).toBe(true);
   });
 
+  it("falls back to the secret key when PAYSTACK_WEBHOOK_SECRET is an empty string", async () => {
+    // Regression: an empty env value ("") must not be treated as a real secret.
+    process.env.PAYSTACK_WEBHOOK_SECRET = "";
+    process.env.PAYSTACK_SECRET_KEY = "sk_test_main";
+    const { verifyPaystackWebhook } = await import("./payments");
+
+    const body = JSON.stringify({ event: "charge.success", data: { reference: "r1" } });
+    const sig = signBody("sk_test_main", body);
+    expect(verifyPaystackWebhook(body, sig)).toBe(true);
+  });
+
   it("rejects a body signed with the wrong secret", async () => {
     process.env.PAYSTACK_WEBHOOK_SECRET = "wh-secret";
     process.env.PAYSTACK_SECRET_KEY = "sk_test_unused";

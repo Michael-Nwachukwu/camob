@@ -87,8 +87,7 @@ export function AvailabilityCalendar({
               className={cn(
                 "min-h-[46px] sm:min-h-[68px] rounded-md px-2 py-2 text-center sm:text-left transition-colors",
                 blocked && "cursor-not-allowed bg-transparent text-ash line-through decoration-stone",
-                !blocked && !selected && day?.status === "available" && "bg-surface-card hover:bg-surface-deep text-ink",
-                !blocked && !selected && day?.status === "partial" && "bg-surface-card hover:bg-surface-deep text-ink ring-1 ring-stone",
+                !blocked && !selected && "bg-surface-card hover:bg-surface-deep text-ink",
                 selected && !isEdge && "bg-ink/10 text-ink",
                 isEdge && "bg-ink text-canvas"
               )}
@@ -115,9 +114,6 @@ export function AvailabilityCalendar({
       <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] text-mute">
         <span className="inline-flex items-center gap-1.5">
           <span className="h-3 w-3 rounded-sm bg-surface-card ring-1 ring-hairline" /> Open
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-sm bg-surface-card ring-1 ring-stone" /> One unit left
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="h-3 w-3 rounded-sm bg-ink" /> Selected

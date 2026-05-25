@@ -3,8 +3,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { ApartmentTypeId, Booking } from "@/lib/types";
 import { units } from "@/lib/data/camob";
+import { BLOCKING_STATUSES_DB } from "@/lib/booking-status";
 
-const HOLDING_STATUSES = ["DRAFT_HOLD", "PENDING_PAYMENT", "CONFIRMED", "ADMIN_BLOCKED", "REFUND_PENDING"] as const;
 const SERIALIZATION_FAILURE_CODES = new Set(["40001", "P2034"]);
 
 function isSerializationFailure(error: unknown): boolean {
@@ -64,7 +64,7 @@ export async function createBookingHoldTransactional(input: {
         const overlappingBookings = await tx.booking.findMany({
           where: {
             apartmentTypeId: input.apartmentTypeId,
-            status: { in: HOLDING_STATUSES as unknown as Prisma.EnumBookingStatusFilter["in"] },
+            status: { in: BLOCKING_STATUSES_DB as unknown as Prisma.EnumBookingStatusFilter["in"] },
             checkIn: { lt: checkOutDate },
             checkOut: { gt: checkInDate }
           },
