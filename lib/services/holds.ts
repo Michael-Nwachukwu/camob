@@ -1,9 +1,10 @@
-import { addDays, addMinutes, parseISO } from "date-fns";
+import { addDays, addMinutes } from "date-fns";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { ApartmentTypeId, Booking } from "@/lib/types";
 import { units } from "@/lib/data/camob";
 import { BLOCKING_STATUSES_DB } from "@/lib/booking-status";
+import { toUtcDate } from "@/lib/date-range";
 
 const SERIALIZATION_FAILURE_CODES = new Set(["40001", "P2034"]);
 
@@ -37,8 +38,9 @@ export async function createBookingHoldTransactional(input: {
   checkOut: string;
   guests: number;
 }): Promise<Booking> {
-  const checkInDate = parseISO(input.checkIn);
-  const checkOutDate = parseISO(input.checkOut);
+  // UTC midnight, matching how dates are stored — see lib/date-range.ts.
+  const checkInDate = toUtcDate(input.checkIn);
+  const checkOutDate = toUtcDate(input.checkOut);
   const apartmentUnits = units.filter((unit) => unit.apartmentTypeId === input.apartmentTypeId);
 
   if (apartmentUnits.length === 0) {

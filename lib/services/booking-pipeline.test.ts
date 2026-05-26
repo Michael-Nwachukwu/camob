@@ -121,4 +121,26 @@ describe("booking pipeline stays in sync across channels", () => {
     expect(isRangeAvailable("one-bedroom", checkIn, checkOut)).toBe(false);
     expect(isRangeAvailable("two-bedroom", checkIn, checkOut)).toBe(true);
   });
+
+  it("allows a back-to-back booking starting on the previous stay's checkout day", async () => {
+    // First stay: 2026-10-10 → 2026-10-13 (checkout the 13th).
+    await createManualBookingAsync({
+      apartmentTypeId: "one-bedroom",
+      checkIn: "2026-10-10",
+      checkOut: "2026-10-13",
+      paymentMethod: "bank_transfer",
+      status: "confirmed",
+      paymentStatus: "paid",
+      guest
+    });
+
+    // Next guest checks in the morning the first leaves — must be allowed.
+    const { hold } = await createBookingHoldAsync({
+      apartmentTypeId: "one-bedroom",
+      checkIn: "2026-10-13",
+      checkOut: "2026-10-15",
+      guests: 2
+    });
+    expect(hold.status).toBe("draft_hold");
+  });
 });

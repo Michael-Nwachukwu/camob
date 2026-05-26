@@ -78,13 +78,18 @@ export async function sendBookingNotification(params: {
     body: JSON.stringify(body)
   });
 
+  // Capture Resend's rejection reason so failures are debuggable from the
+  // notification log (e.g. unverified from-domain) instead of vanishing.
+  const error = response.ok ? undefined : (await response.text().catch(() => "")).slice(0, 500);
+
   await logNotification({
     event: params.event,
     recipients,
     payload: {
       bookingId: params.bookingId,
       guestName: params.guestName,
-      delivered: response.ok
+      delivered: response.ok,
+      ...(error ? { error } : {})
     }
   });
 
