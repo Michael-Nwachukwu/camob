@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { addMinutes } from "date-fns";
 import {
   createDraftHold,
   getApartmentTypeById,
@@ -44,6 +45,11 @@ function applyFinalizePatch(booking: Booking, input: CreateBookingInput) {
   booking.guest = input.guest;
   // Idempotency: only mint a reference once per booking.
   booking.paymentReference = booking.paymentReference ?? newPaymentReference();
+  // Paystack: hold the dates for a short payment window, then auto-release if
+  // the guest never pays (the expiry sweep flips it to EXPIRED). Bank transfer
+  // awaits manual admin review, so it must NOT auto-expire — clear the window.
+  booking.expiresAt =
+    input.paymentMethod === "paystack" ? addMinutes(new Date(), 15).toISOString() : undefined;
 }
 
 export function createBookingHold(input: {

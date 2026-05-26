@@ -82,6 +82,9 @@ playwright.config.ts  Runs `next dev` on :3100 with in-memory fallback
 - **Guest URLs are token-gated.** Lookup pages (`/booking/[id]`, `/booking/bank-transfer`) require a 24-char HMAC of the booking id (`signBookingId` in `lib/booking-tokens.ts`). Verification is constant-time. Tokens are returned by `/api/bookings` and embedded in the Paystack callback URL.
 - **Never trust client-side totals.** Recompute price server-side from `RatePlan` + dates.
 - **Idempotency**: payment refs are persisted on first call (`crypto.randomUUID`), not regenerated. Webhook handler is idempotent on `(bookingId, reference, status=paid)`.
+- **Dates are UTC date-only.** `Booking.checkIn/checkOut` + blackout dates are `@db.Date`. Never parse date-only strings with `parseISO` (local TZ) — use `toUtcDate` from `lib/date-range.ts`. Stays are half-open `[checkIn, checkOut)`, so a check-in on a prior stay's checkout day is NOT an overlap (back-to-back is allowed).
+- **DB backstop against double-booking**: a Postgres `EXCLUDE` constraint (`booking_no_overlap`, in `prisma/sql/0001_booking_no_overlap.sql`) rejects overlapping blocking bookings per unit. It's raw SQL (Prisma can't express it) and is NOT applied by `prisma db push` — apply it separately (see [docs/deploy-phase-6.md](docs/deploy-phase-6.md)). The hold path catches its violation (`23P01`) and returns a friendly "dates no longer available".
+- **What occupies a unit** is the single `BLOCKING_STATUSES` list in `lib/booking-status.ts`, shared by the calendar and the hold transaction. Abandoned holds/Paystack bookings carry an `expiresAt` and are swept to `EXPIRED`; bank-transfer bookings carry no `expiresAt` (manual review, never auto-expire).
 
 ## Auth & security (non-negotiable)
 

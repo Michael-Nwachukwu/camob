@@ -17,6 +17,17 @@ function isSerializationFailure(error: unknown): boolean {
   return false;
 }
 
+// Postgres exclusion_violation (23P01) from the booking_no_overlap constraint —
+// the DB-level backstop firing when a concurrent request grabbed the unit
+// between our in-transaction check and the insert. Treat it as "taken".
+function isExclusionViolation(error: unknown): boolean {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    const meta = error.meta as { code?: string } | undefined;
+    if (error.code === "23P01" || meta?.code === "23P01") return true;
+  }
+  return error instanceof Error && /booking_no_overlap|exclusion(?:_| )violation/i.test(error.message);
+}
+
 async function withSerializableRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
   let lastError: unknown;
   for (let attempt = 0; attempt < retries; attempt++) {
@@ -108,7 +119,15 @@ export async function createBookingHoldTransactional(input: {
       },
       { isolationLevel: "Serializable", maxWait: 5000, timeout: 10000 }
     )
-  );
+  ).catch((error) => {
+    // HoldUnavailableError (no inventory / blackout) propagates as-is. The
+    // exclusion constraint firing means a concurrent request just took the unit.
+    if (error instanceof HoldUnavailableError) throw error;
+    if (isExclusionViolation(error)) {
+      throw new HoldUnavailableError("Selected dates are no longer available");
+    }
+    throw error;
+  });
 
   // We need a domain Booking, not the Prisma row. Map in the caller via repository.mapPrismaBooking().
   return {
@@ -141,12 +160,17 @@ export class HoldUnavailableError extends Error {
   }
 }
 
-/** Sweep expired DRAFT_HOLD bookings. Returns the number flipped. */
+/**
+ * Sweep expired holds AND abandoned (unpaid) Paystack bookings.
+ * Both sit at a status with an `expiresAt` in the past. Bank-transfer bookings
+ * carry no `expiresAt` (they await manual review), so they're never caught.
+ * Returns the number flipped.
+ */
 export async function expireStaleHolds(): Promise<number> {
   const result = await prisma.booking.updateMany({
     where: {
-      status: "DRAFT_HOLD",
-      expiresAt: { lt: new Date() }
+      status: { in: ["DRAFT_HOLD", "PENDING_PAYMENT"] },
+      expiresAt: { not: null, lt: new Date() }
     },
     data: { status: "EXPIRED" }
   });

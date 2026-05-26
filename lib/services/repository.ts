@@ -127,7 +127,8 @@ function expireMemoryHolds() {
   const now = new Date();
 
   bookingStore.forEach((booking) => {
-    if (booking.status === "draft_hold" && booking.expiresAt && new Date(booking.expiresAt) < now) {
+    const expirable = booking.status === "draft_hold" || booking.status === "pending_payment";
+    if (expirable && booking.expiresAt && new Date(booking.expiresAt) < now) {
       booking.status = "expired";
     }
   });
@@ -239,8 +240,8 @@ export async function getBookingsAsync() {
 
   await prisma.booking.updateMany({
     where: {
-      status: "DRAFT_HOLD",
-      expiresAt: { lt: new Date() }
+      status: { in: ["DRAFT_HOLD", "PENDING_PAYMENT"] },
+      expiresAt: { not: null, lt: new Date() }
     },
     data: { status: "EXPIRED" }
   });
