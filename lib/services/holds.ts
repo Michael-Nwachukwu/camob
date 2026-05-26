@@ -1,10 +1,11 @@
-import { addDays, addMinutes, parseISO } from "date-fns";
+import { addDays, addMinutes } from "date-fns";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { ApartmentTypeId, Booking } from "@/lib/types";
 import { units } from "@/lib/data/camob";
+import { BLOCKING_STATUSES_DB } from "@/lib/booking-status";
+import { toUtcDate } from "@/lib/date-range";
 
-const HOLDING_STATUSES = ["DRAFT_HOLD", "PENDING_PAYMENT", "CONFIRMED", "ADMIN_BLOCKED", "REFUND_PENDING"] as const;
 const SERIALIZATION_FAILURE_CODES = new Set(["40001", "P2034"]);
 
 function isSerializationFailure(error: unknown): boolean {
@@ -14,6 +15,17 @@ function isSerializationFailure(error: unknown): boolean {
     if (meta?.code && SERIALIZATION_FAILURE_CODES.has(meta.code)) return true;
   }
   return false;
+}
+
+// Postgres exclusion_violation (23P01) from the booking_no_overlap constraint —
+// the DB-level backstop firing when a concurrent request grabbed the unit
+// between our in-transaction check and the insert. Treat it as "taken".
+function isExclusionViolation(error: unknown): boolean {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    const meta = error.meta as { code?: string } | undefined;
+    if (error.code === "23P01" || meta?.code === "23P01") return true;
+  }
+  return error instanceof Error && /booking_no_overlap|exclusion(?:_| )violation/i.test(error.message);
 }
 
 async function withSerializableRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
@@ -37,8 +49,9 @@ export async function createBookingHoldTransactional(input: {
   checkOut: string;
   guests: number;
 }): Promise<Booking> {
-  const checkInDate = parseISO(input.checkIn);
-  const checkOutDate = parseISO(input.checkOut);
+  // UTC midnight, matching how dates are stored — see lib/date-range.ts.
+  const checkInDate = toUtcDate(input.checkIn);
+  const checkOutDate = toUtcDate(input.checkOut);
   const apartmentUnits = units.filter((unit) => unit.apartmentTypeId === input.apartmentTypeId);
 
   if (apartmentUnits.length === 0) {
@@ -64,7 +77,7 @@ export async function createBookingHoldTransactional(input: {
         const overlappingBookings = await tx.booking.findMany({
           where: {
             apartmentTypeId: input.apartmentTypeId,
-            status: { in: HOLDING_STATUSES as unknown as Prisma.EnumBookingStatusFilter["in"] },
+            status: { in: BLOCKING_STATUSES_DB as unknown as Prisma.EnumBookingStatusFilter["in"] },
             checkIn: { lt: checkOutDate },
             checkOut: { gt: checkInDate }
           },
@@ -106,7 +119,15 @@ export async function createBookingHoldTransactional(input: {
       },
       { isolationLevel: "Serializable", maxWait: 5000, timeout: 10000 }
     )
-  );
+  ).catch((error) => {
+    // HoldUnavailableError (no inventory / blackout) propagates as-is. The
+    // exclusion constraint firing means a concurrent request just took the unit.
+    if (error instanceof HoldUnavailableError) throw error;
+    if (isExclusionViolation(error)) {
+      throw new HoldUnavailableError("Selected dates are no longer available");
+    }
+    throw error;
+  });
 
   // We need a domain Booking, not the Prisma row. Map in the caller via repository.mapPrismaBooking().
   return {
@@ -139,12 +160,17 @@ export class HoldUnavailableError extends Error {
   }
 }
 
-/** Sweep expired DRAFT_HOLD bookings. Returns the number flipped. */
+/**
+ * Sweep expired holds AND abandoned (unpaid) Paystack bookings.
+ * Both sit at a status with an `expiresAt` in the past. Bank-transfer bookings
+ * carry no `expiresAt` (they await manual review), so they're never caught.
+ * Returns the number flipped.
+ */
 export async function expireStaleHolds(): Promise<number> {
   const result = await prisma.booking.updateMany({
     where: {
-      status: "DRAFT_HOLD",
-      expiresAt: { lt: new Date() }
+      status: { in: ["DRAFT_HOLD", "PENDING_PAYMENT"] },
+      expiresAt: { not: null, lt: new Date() }
     },
     data: { status: "EXPIRED" }
   });

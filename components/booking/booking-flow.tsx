@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { format } from "date-fns";
 import { CreditCard, Landmark, AlertCircle, CheckCircle2, ChevronLeft } from "lucide-react";
+import { toast } from "sonner";
 import { apartmentTypes } from "@/lib/data/camob";
 import { AvailabilityCalendar } from "@/components/booking/availability-calendar";
 import type { ApartmentTypeId, BookingQuote, UnitAvailabilityDay } from "@/lib/types";
@@ -93,7 +94,9 @@ export function BookingFlow({
 
   async function holdDates(guestCount = 2) {
     if (!checkIn || !checkOut) {
-      setFormState({ status: "error", message: "Pick a check-in and check-out first." });
+      const message = "Pick a check-in and check-out first.";
+      setFormState({ status: "error", message });
+      toast.error(message);
       return null;
     }
     const response = await fetch("/api/booking-holds", {
@@ -103,7 +106,9 @@ export function BookingFlow({
     });
     const payload = await response.json();
     if (!response.ok) {
-      setFormState({ status: "error", message: payload.error ?? "Couldn't hold those dates." });
+      const message = payload.error ?? "Couldn't hold those dates.";
+      setFormState({ status: "error", message });
+      toast.error(message);
       return null;
     }
     setHoldId(payload.hold.id);
@@ -118,7 +123,9 @@ export function BookingFlow({
     const guestCount = Number(formData.get("guests"));
 
     if (!checkIn || !checkOut) {
-      setFormState({ status: "error", message: "Pick a valid stay window." });
+      const message = "Pick a valid stay window.";
+      setFormState({ status: "error", message });
+      toast.error(message);
       setSubmitting(false);
       return;
     }
@@ -129,6 +136,7 @@ export function BookingFlow({
       return;
     }
 
+    const toastId = toast.loading("Reserving your stay…");
     const response = await fetch("/api/bookings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -150,10 +158,17 @@ export function BookingFlow({
 
     const payload = await response.json();
     if (!response.ok) {
-      setFormState({ status: "error", message: payload.error ?? "Couldn't finalise the booking." });
+      const message = payload.error ?? "Couldn't finalise the booking.";
+      setFormState({ status: "error", message });
+      toast.error(message, { id: toastId });
       setSubmitting(false);
       return;
     }
+
+    toast.success(
+      paymentMethod === "paystack" ? "Booking received — taking you to payment…" : "Booking received — sending you the transfer details…",
+      { id: toastId }
+    );
 
     const token = payload.token as string | undefined;
 

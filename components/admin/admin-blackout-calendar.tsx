@@ -1,17 +1,21 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { addMonths, endOfMonth, format, parseISO, startOfMonth } from "date-fns";
 import { ChevronLeft, ChevronRight, CalendarOff } from "lucide-react";
+import { toast } from "sonner";
 import { apartmentTypes } from "@/lib/data/camob";
+import type { ActionResult } from "@/components/admin/action-form";
 import type { ApartmentTypeId, UnitAvailabilityDay } from "@/lib/types";
 import { cn, formatDate } from "@/lib/utils";
 
 type Props = {
-  createBlackout: (formData: FormData) => Promise<void>;
+  createBlackout: (formData: FormData) => Promise<ActionResult>;
 };
 
 export function AdminBlackoutCalendar({ createBlackout }: Props) {
+  const router = useRouter();
   const [apartmentTypeId, setApartmentTypeId] = useState<ApartmentTypeId>("one-bedroom");
   const [monthAnchor, setMonthAnchor] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [days, setDays] = useState<UnitAvailabilityDay[]>([]);
@@ -63,18 +67,27 @@ export function AdminBlackoutCalendar({ createBlackout }: Props) {
       return;
     }
     setSubmitting(true);
+    const toastId = toast.loading("Blocking dates…");
     try {
       const formData = new FormData();
       formData.set("apartmentTypeId", apartmentTypeId);
       formData.set("startDate", start);
       formData.set("endDate", end);
       formData.set("reason", reason.trim());
-      await createBlackout(formData);
-      setStart(undefined);
-      setEnd(undefined);
-      setReason("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save that blackout.");
+      const result = await createBlackout(formData);
+      if (result.ok) {
+        toast.success(result.message ?? "Dates blocked.", { id: toastId });
+        setStart(undefined);
+        setEnd(undefined);
+        setReason("");
+        router.refresh();
+      } else {
+        toast.error(result.error, { id: toastId });
+        setError(result.error);
+      }
+    } catch {
+      toast.error("Couldn't save that blackout.", { id: toastId });
+      setError("Couldn't save that blackout.");
     } finally {
       setSubmitting(false);
     }

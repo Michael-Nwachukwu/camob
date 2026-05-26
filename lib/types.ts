@@ -145,9 +145,10 @@ export interface AdminBookingRow {
 export interface Attraction {
   id: string;
   name: string;
-  category: "Beach" | "Nature" | "Retail" | "Dining" | "Culture" | "Sports";
-  distanceKm: number;
+  category: "Beach" | "Nature" | "Retail" | "Dining" | "Culture" | "Sports" | "Health" | "Leisure";
+  distanceKm?: number;
   driveTime: string;
   description: string;
   image: string;
+  mapUrl?: string;
 }

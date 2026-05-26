@@ -67,8 +67,8 @@ model Booking {
   guestPhone      String
   guestCount      Int
   specialRequests String?
-  checkIn         DateTime
-  checkOut        DateTime
+  checkIn         DateTime       @db.Date
+  checkOut        DateTime       @db.Date
   status          BookingStatus
   subtotal        Int
   serviceCharge   Int
@@ -97,8 +97,8 @@ model Payment {
 model BlockedDateRange {
   id              String        @id @default(cuid())
   apartmentTypeId String
-  startDate       DateTime
-  endDate         DateTime
+  startDate       DateTime      @db.Date
+  endDate         DateTime      @db.Date
   reason          String
   apartmentType   ApartmentType @relation(fields: [apartmentTypeId], references: [id])
 }

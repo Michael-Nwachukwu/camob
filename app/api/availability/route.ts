@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getMonthAvailabilityAsync } from "@/lib/services/availability";
 import { availabilityQuerySchema } from "@/lib/validators/booking";
 
+// Availability must never be served stale — always recompute against the DB.
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const parsed = availabilityQuerySchema.safeParse({

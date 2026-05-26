@@ -1,26 +1,48 @@
+import { redirect } from "next/navigation";
+import { AuthError } from "next-auth";
 import { signIn } from "@/auth";
 
-export default function Page() {
+async function authenticate(formData: FormData) {
+  "use server";
+  try {
+    await signIn("credentials", {
+      email: formData.get("email"),
+      password: formData.get("password"),
+      redirectTo: "/admin"
+    });
+  } catch (error) {
+    // A wrong email/password throws AuthError — show a friendly message.
+    // Everything else (incl. the NEXT_REDIRECT thrown on success) re-throws.
+    if (error instanceof AuthError) {
+      redirect("/admin/sign-in?error=invalid");
+    }
+    throw error;
+  }
+}
+
+export default async function Page({
+  searchParams
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface-soft px-4 py-12 md:px-6">
-      <form
-        action={async (formData) => {
-          "use server";
-          await signIn("credentials", {
-            email: formData.get("email"),
-            password: formData.get("password"),
-            redirectTo: "/admin"
-          });
-        }}
-        className="w-full max-w-md rounded-lg bg-canvas p-8 md:p-10"
-      >
+      <form action={authenticate} className="w-full max-w-md rounded-lg bg-canvas p-8 md:p-10">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-mute">Staff only</p>
-        <h1 className="mt-3 text-[28px] font-bold leading-[1.1] text-ink tracking-display md:text-[36px]">
+        <h1 className="mt-3 text-[28px] font-bold leading-[1.1] text-ink md:text-[36px]">
           Camob admin sign-in
         </h1>
         <p className="mt-3 text-sm text-body">
           Use your work email. If you've forgotten the password, ask the team — we still rotate them by hand.
         </p>
+
+        {error ? (
+          <p className="mt-6 rounded-md bg-surface-card px-4 py-3 text-sm text-danger ring-1 ring-danger/20">
+            That email and password didn't match. Try again.
+          </p>
+        ) : null}
 
         <div className="mt-8 space-y-4">
           <div>

@@ -11,6 +11,7 @@ import type {
 } from "@prisma/client";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
+import { isBlocking } from "@/lib/booking-status";
 import {
   apartmentTypes,
   attractions,
@@ -35,8 +36,6 @@ import type {
 const bookingStore: Booking[] = [...seededBookings];
 const blackoutStore: BlockedDateRange[] = [...blockedDateRanges];
 const rateStore: RatePlan[] = [...ratePlans];
-
-const CANCELLING_STATUSES: BookingStatus[] = ["cancelled", "expired", "refunded"];
 
 type PrismaBookingWithRelations = PrismaBookingModel & {
   unit: PrismaUnit;
@@ -128,7 +127,8 @@ function expireMemoryHolds() {
   const now = new Date();
 
   bookingStore.forEach((booking) => {
-    if (booking.status === "draft_hold" && booking.expiresAt && new Date(booking.expiresAt) < now) {
+    const expirable = booking.status === "draft_hold" || booking.status === "pending_payment";
+    if (expirable && booking.expiresAt && new Date(booking.expiresAt) < now) {
       booking.status = "expired";
     }
   });
@@ -240,8 +240,8 @@ export async function getBookingsAsync() {
 
   await prisma.booking.updateMany({
     where: {
-      status: "DRAFT_HOLD",
-      expiresAt: { lt: new Date() }
+      status: { in: ["DRAFT_HOLD", "PENDING_PAYMENT"] },
+      expiresAt: { not: null, lt: new Date() }
     },
     data: { status: "EXPIRED" }
   });
@@ -259,12 +259,12 @@ export async function getBookingsAsync() {
 
 export function getActiveBookings() {
   expireMemoryHolds();
-  return bookingStore.filter((booking) => !CANCELLING_STATUSES.includes(booking.status));
+  return bookingStore.filter((booking) => isBlocking(booking.status));
 }
 
 export async function getActiveBookingsAsync() {
   const bookings = await getBookingsAsync();
-  return bookings.filter((booking) => !CANCELLING_STATUSES.includes(booking.status));
+  return bookings.filter((booking) => isBlocking(booking.status));
 }
 
 export function getBookingById(id: string) {
@@ -560,22 +560,4 @@ export async function getAdminSummaryAsync() {
     pendingBookings: pending.length,
     grossRevenue: confirmed.reduce((sum, booking) => sum + booking.total, 0)
   };
-}
-
-export function getStatusTone(status: BookingStatus) {
-  switch (status) {
-    case "confirmed":
-      return "success";
-    case "pending_payment":
-    case "draft_hold":
-      return "warning";
-    case "cancelled":
-    case "expired":
-    case "admin_blocked":
-    case "refund_pending":
-    case "refunded":
-      return "danger";
-    default:
-      return "muted";
-  }
 }
