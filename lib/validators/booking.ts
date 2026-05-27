@@ -45,7 +45,7 @@ export const bookingSchema = checkOutAfterCheckIn(
 
 export const paystackInitializeSchema = z.object({
   bookingId: z.string(),
-  email: z.string().email()
+  token: z.string().min(1)
 });
 
 export const bookingUpdateSchema = z.object({

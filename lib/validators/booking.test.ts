@@ -197,13 +197,13 @@ describe("bookingUpdateSchema", () => {
 });
 
 describe("paystackInitializeSchema", () => {
-  it("requires bookingId + email", () => {
+  it("requires bookingId + token", () => {
     expect(paystackInitializeSchema.safeParse({}).success).toBe(false);
-    expect(paystackInitializeSchema.safeParse({ bookingId: "x", email: "ada@example.com" }).success).toBe(true);
+    expect(paystackInitializeSchema.safeParse({ bookingId: "x", token: "sometoken" }).success).toBe(true);
   });
 
-  it("rejects malformed email", () => {
-    expect(paystackInitializeSchema.safeParse({ bookingId: "x", email: "nope" }).success).toBe(false);
+  it("rejects a missing token", () => {
+    expect(paystackInitializeSchema.safeParse({ bookingId: "x", token: "" }).success).toBe(false);
   });
 });
 

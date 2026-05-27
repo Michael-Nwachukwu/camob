@@ -17,7 +17,7 @@ const ticker = [
   "Novare Mall · 10 min",
   "Lekki–Epe Expressway · 3 min",
   // the house itself
-  "Two-storey maisonette",
+  "One-storey maisonette",
   "Private entrance from the street",
   "Living + kitchen downstairs",
   "Ensuite bedrooms upstairs",

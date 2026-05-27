@@ -21,9 +21,8 @@ async function confirmCancellation(id: string, token: string): Promise<CancelRes
     const result = await cancelBookingAsync(id);
     await sendBookingNotification({
       event: "booking_cancelled",
-      guestEmail: result.booking.guest.email,
-      guestName: result.booking.guest.fullName,
-      bookingId: result.booking.id
+      booking: result.booking,
+      token
     });
     return { ok: true, redirectTo: `/booking/${id}?token=${token}&cancelled=1` };
   } catch (error) {
