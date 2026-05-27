@@ -6,6 +6,7 @@ import { CreditCard, Landmark, AlertCircle, CheckCircle2, ChevronLeft } from "lu
 import { toast } from "sonner";
 import { apartmentTypes } from "@/lib/data/camob";
 import { AvailabilityCalendar } from "@/components/booking/availability-calendar";
+import { saveIncompleteBooking } from "@/lib/incomplete-bookings";
 import type { ApartmentTypeId, BookingQuote, UnitAvailabilityDay } from "@/lib/types";
 import { cn, formatCurrency, formatDate, nightsBetween } from "@/lib/utils";
 
@@ -173,10 +174,25 @@ export function BookingFlow({
     const token = payload.token as string | undefined;
 
     if (paymentMethod === "paystack") {
+      // Persist a resume pointer before leaving for Paystack: if the guest
+      // bounces off the checkout page, the floating pill brings them back.
+      if (token) {
+        saveIncompleteBooking({
+          id: payload.booking.id,
+          token,
+          apartmentName: apartment.name,
+          checkIn: payload.booking.checkIn,
+          checkOut: payload.booking.checkOut,
+          total: payload.booking.total,
+          expiresAt: payload.booking.expiresAt ?? null,
+          savedAt: Date.now()
+        });
+      }
+
       const paystackResponse = await fetch("/api/payments/paystack/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId: payload.booking.id, email: payload.booking.guest.email })
+        body: JSON.stringify({ bookingId: payload.booking.id, token })
       });
       const paystackPayload = await paystackResponse.json();
       if (paystackPayload.authorizationUrl) {

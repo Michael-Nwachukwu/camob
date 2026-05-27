@@ -3,6 +3,7 @@ import { confirmBookingPaymentAsync } from "@/lib/services/booking";
 import { getBookingByIdAsync } from "@/lib/services/repository";
 import { sendBookingNotification } from "@/lib/services/notifications";
 import { verifyPaystackWebhook } from "@/lib/services/payments";
+import { signBookingId } from "@/lib/booking-tokens";
 import type { PaystackWebhookEvent } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -57,9 +58,8 @@ export async function POST(request: Request) {
   const confirmed = await confirmBookingPaymentAsync(booking.id, payload.data.reference);
   await sendBookingNotification({
     event: "payment_confirmed",
-    guestEmail: confirmed.guest.email,
-    guestName: confirmed.guest.fullName,
-    bookingId: confirmed.id
+    booking: confirmed,
+    token: signBookingId(confirmed.id)
   });
 
   return NextResponse.json({ ok: true });

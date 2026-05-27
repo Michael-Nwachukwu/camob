@@ -14,13 +14,12 @@ export async function POST(request: Request) {
 
   try {
     const result = await finalizeBookingAsync(parsed.data);
+    const token = signBookingId(result.booking.id);
     await sendBookingNotification({
       event: "booking_created",
-      guestEmail: result.booking.guest.email,
-      guestName: result.booking.guest.fullName,
-      bookingId: result.booking.id
+      booking: result.booking,
+      token
     });
-    const token = signBookingId(result.booking.id);
     return NextResponse.json({ ...result, token });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Booking could not be completed." }, { status: 400 });

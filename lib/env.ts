@@ -13,6 +13,8 @@ export const env = {
   resendApiKey: process.env.RESEND_API_KEY,
   notificationFromEmail: process.env.NOTIFICATION_FROM_EMAIL ?? "reservations@camobresidence.com",
   bookingAlertEmail: process.env.BOOKING_ALERT_EMAIL ?? "camobresidence@gmail.com",
+  // Public base URL for links in emails (booking page, admin). Falls back for dev.
+  appUrl: process.env.NEXTAUTH_URL ?? "http://localhost:3000",
   mapboxToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
   cronSecret: process.env.CRON_SECRET,
   bookingLookupSecret: process.env.BOOKING_LOOKUP_SECRET

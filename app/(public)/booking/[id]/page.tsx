@@ -5,6 +5,7 @@ import { siteCopy, apartmentTypes } from "@/lib/data/camob";
 import { getBookingByIdAsync } from "@/lib/services/repository";
 import { canCancel } from "@/lib/services/refunds";
 import { verifyBookingToken } from "@/lib/booking-tokens";
+import { CompletePaymentButton } from "@/components/booking/complete-payment-button";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Booking } from "@/lib/types";
 
@@ -75,6 +76,19 @@ export default async function Page({
                 <span className="font-semibold text-ink">{formatCurrency(booking.refundAmount)}</span>
                 {awaitingRefund ? " — usually clears within a few business days." : "."}
               </p>
+            </div>
+          ) : null}
+
+          {booking.paymentMethod === "paystack" && booking.status === "pending_payment" && booking.paymentStatus !== "paid" ? (
+            <div className="mt-8 rounded-md bg-surface-card p-6">
+              <p className="font-serif text-base italic text-ink">Finish your payment</p>
+              <p className="mt-2 text-sm leading-[1.6] text-body md:text-base">
+                Your dates are still held. Pick up where you left off and pay securely with Paystack to lock
+                in the stay.
+              </p>
+              <div className="mt-4">
+                <CompletePaymentButton bookingId={booking.id} token={token!} />
+              </div>
             </div>
           ) : null}
 

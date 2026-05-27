@@ -49,7 +49,7 @@ export const siteCopy = {
   },
   checkIn: "2:00 PM",
   checkOut: "12:00 PM",
-  whatsapp: "https://wa.me/2348100000000",
+  whatsapp: "https://wa.me/2348137823703",
   googleMapsLink: "https://maps.google.com/?q=Ogombo+Lekki+Lagos",
   conciergeEmail: "reservations@camobresidence.com",
   // Bank transfer details for the manual-pay flow. Owner to replace before
