@@ -9,7 +9,7 @@ A short-let booking site for a two-maisonette property in Ogombo, Lekki, Lagos. 
 - **next-auth v5 beta** (Credentials provider, single hard-coded admin).
 - **Tailwind v3** with a custom token set (see Design system).
 - **Paystack** for payments, **Resend** for transactional email (both optional in dev).
-- **Vitest** for unit tests (45 across 5 files). **Playwright** for e2e (22 tests, 11 specs × 2 projects). GitHub Actions CI in `.github/workflows/ci.yml`.
+- **Vitest** for unit tests (72 across 10 files). **Playwright** for e2e (22 tests, 11 specs × 2 projects). GitHub Actions CI in `.github/workflows/ci.yml`.
 - **Framer Motion v12** via the `motion/react` import (not `framer-motion`).
 
 ## Layout cheat sheet
@@ -17,11 +17,12 @@ A short-let booking site for a two-maisonette property in Ogombo, Lekki, Lagos. 
 ```text
 app/
   (public)/         marketing + booking funnel
-    booking/[id]/   Guest booking lookup (token-gated)
+    booking/[id]/   Guest booking lookup (token-gated) + /cancel
     booking/bank-transfer/  Transfer instructions screen
     booking/success/        Post-Paystack landing
   admin/            staff console (guarded by middleware)
   api/              JSON endpoints — admin ones live under /api/admin/*
+    bookings/[id]   GET status probe (token-gated, no PII) — drives the resume pill
     cron/           /api/cron/expire-holds (CRON_SECRET gated)
 auth.config.ts      Edge-safe NextAuth config (imported by middleware, NO node deps)
 auth.ts             Full NextAuth config + handlers/signIn/signOut/auth exports
@@ -38,22 +39,25 @@ lib/
     booking         Hold + finalize flow (transactional when DB present)
     holds           createBookingHoldTransactional, expireStaleHolds
     refunds         computeRefund (pure), cancelBookingAsync, processPaystackRefundAsync
-    payments        Paystack init + refund + webhook signature verify
-    notifications   Resend send + NotificationLog write
+    payments        Paystack init (mints fresh ref per call) + refund + webhook verify
+    notifications   Per-recipient Resend send (guest + admin) + NotificationLog write
+    email-templates buildBookingEmails — branded inline-CSS HTML per event × recipient
     repository      Prisma queries with in-memory dev fallback
   validators/       Zod schemas for API payloads
   password.ts       Scrypt hash + timing-safe verify
   auth-helpers.ts   requireAdmin() handler guard
   booking-tokens.ts HMAC-signed guest lookup tokens (signBookingId / verifyBookingToken)
+  incomplete-bookings.ts  Browser-only localStorage store for the resume pill
   env.ts            Centralised env access (NEVER read process.env in app code)
   prisma.ts         Singleton Prisma client
   types.ts          Domain types (Booking, Quote, Guest, …)
 components/
-  booking/          BookingFlow + AvailabilityCalendar (the 3-step mobile wizard)
+  booking/          BookingFlow + AvailabilityCalendar (3-step wizard),
+                    CompletePaymentButton, ResumeBookingPill, CancelConfirm
   sections/         Home/apartment marketing sections
   admin/            AdminNav, AdminStatCard, StatusPill, AdminBlackoutCalendar
   layout/           SiteHeader, SiteFooter, WhatsappFab
-  ui/               Reveal, TiltHover, GoogleMapEmbed
+  ui/               Reveal, TiltHover, GoogleMapEmbed, Toaster (top-right, on-brand)
 prisma/
   schema.prisma     The schema. Seed: `npm run db:seed` (`SEED_DEMO_DATA=true` for demo bookings)
 tests/e2e/          Playwright specs (admin auth, booking lookup, public smoke)
@@ -81,7 +85,10 @@ playwright.config.ts  Runs `next dev` on :3100 with in-memory fallback
 - **Stale holds**: a Vercel cron hits `/api/cron/expire-holds` every minute and flips `DRAFT_HOLD` rows past `expiresAt` to `EXPIRED`. The route is gated by `CRON_SECRET` in prod.
 - **Guest URLs are token-gated.** Lookup pages (`/booking/[id]`, `/booking/bank-transfer`) require a 24-char HMAC of the booking id (`signBookingId` in `lib/booking-tokens.ts`). Verification is constant-time. Tokens are returned by `/api/bookings` and embedded in the Paystack callback URL.
 - **Never trust client-side totals.** Recompute price server-side from `RatePlan` + dates.
-- **Idempotency**: payment refs are persisted on first call (`crypto.randomUUID`), not regenerated. Webhook handler is idempotent on `(bookingId, reference, status=paid)`.
+- **Paystack payment references are minted per `/transaction/initialize` call** (`CAMOB_<uuid>`) and persisted to `Booking.paymentReference` before the Paystack request. Paystack rejects reused references, so the resume flow must always send a fresh one; the webhook still matches against the latest persisted ref, so swapping it is safe. The booking page's "Complete payment" button and the initial booking flow share this path.
+- **Webhook idempotency**: handler short-circuits when `paymentStatus === "paid"` and `paymentReference === payload.data.reference`. Reference mismatch is rejected (older Paystack tab paid after a re-init is treated as stale).
+- **Transactional emails** are built by `lib/services/email-templates.ts` (`buildBookingEmails`) — branded inline-CSS HTML, **per event × per recipient** (guest copy and admin copy are distinct subject + body). Inline CSS only, since email clients don't load web fonts (Georgia is the serif fallback). `sendBookingNotification({ event, booking, token })` sends two separate Resend calls and logs each delivery to `NotificationLog`. Base URL for in-email links is `env.appUrl` (← `NEXTAUTH_URL`).
+- **Resume an abandoned Paystack payment**: a guest who bounces off the Paystack page can recover via (a) the link in the `booking_created` email, (b) the bottom-left `ResumeBookingPill` (opposite the WhatsApp FAB), or (c) navigating back to `/booking/[id]?token=…`. The pill stores pointers in `localStorage` via `lib/incomplete-bookings.ts`, re-checks server status on mount and every route change, and prunes anything no longer `pending_payment`. Dismiss uses `sessionStorage` so the recovery pointer isn't lost. The Paystack init endpoint is token-gated and derives email from the booking, so the resume payload is just `{ bookingId, token }`.
 - **Dates are UTC date-only.** `Booking.checkIn/checkOut` + blackout dates are `@db.Date`. Never parse date-only strings with `parseISO` (local TZ) — use `toUtcDate` from `lib/date-range.ts`. Stays are half-open `[checkIn, checkOut)`, so a check-in on a prior stay's checkout day is NOT an overlap (back-to-back is allowed).
 - **DB backstop against double-booking**: a Postgres `EXCLUDE` constraint (`booking_no_overlap`, in `prisma/sql/0001_booking_no_overlap.sql`) rejects overlapping blocking bookings per unit. It's raw SQL (Prisma can't express it) and is NOT applied by `prisma db push` — apply it separately (see [docs/deploy-phase-6.md](docs/deploy-phase-6.md)). The hold path catches its violation (`23P01`) and returns a friendly "dates no longer available".
 - **What occupies a unit** is the single `BLOCKING_STATUSES` list in `lib/booking-status.ts`, shared by the calendar and the hold transaction. Abandoned holds/Paystack bookings carry an `expiresAt` and are swept to `EXPIRED`; bank-transfer bookings carry no `expiresAt` (manual review, never auto-expire).
@@ -100,7 +107,7 @@ playwright.config.ts  Runs `next dev` on :3100 with in-memory fallback
 - **Milestone B — holds actually work: ✅ done.** Transactional hold creation (`lib/services/holds.ts`), no more in-memory dual-writes, `/api/cron/expire-holds` + `vercel.json` schedule, guest booking lookup at `/booking/[id]` with HMAC token, bank-transfer instructions screen at `/booking/bank-transfer`. Pre-deploy checklist in [docs/deploy-phase-2.md](docs/deploy-phase-2.md). Owner still needs to replace placeholder `siteCopy.bankTransfer.accountNumber` in `lib/data/camob.ts` before launch.
 - **Milestone C — admin parity: ✅ done.** Admin reskinned onto public tokens + serif headlines. Active-state nav (`AdminNav`). Legacy color aliases dropped from `tailwind.config.ts`. Auth split into `auth.config.ts` (Edge-safe) + `auth.ts` (full) — fixes a latent Edge-runtime build error. Parity pages: `/admin/bookings/new` (manual create), `/admin/payments` (Payment rows joined with bookings), `/admin/notifications` (NotificationLog rows), and a click-to-blackout calendar on `/admin/calendar` via `AdminBlackoutCalendar`. Pre-deploy notes in [docs/deploy-phase-3.md](docs/deploy-phase-3.md).
 - **Milestone D — testable: ✅ done.** 45 Vitest unit tests covering password hashing, booking tokens, Paystack webhook verifier, every zod validator, and the availability service (with `vi.setSystemTime` so the seeded April-2026 dates stay valid). 22 Playwright e2e tests across chromium + Pixel 5 mobile viewports covering admin auth gating, booking-token enumeration defense, and the public booking smoke path. GitHub Actions CI runs typecheck + unit + build + e2e on every PR. Notes in [docs/deploy-phase-4.md](docs/deploy-phase-4.md).
-- **Milestone E — production polish: in progress.** ✅ Refund/cancel flow done: guest self-cancel at `/booking/[id]/cancel` (token-gated), Moderate policy in `siteCopy.cancellationPolicy` (7d→100% / 2-7d→50% / <48h→0%, subtotal only), refund locked at cancel time in `Booking.refundAmount`, admin one-click Paystack refund + manual mark-refunded on `/admin/bookings`. Schema gained `cancelledAt` + `refundAmount` (run `npx prisma db push`). Notes in [docs/deploy-phase-5.md](docs/deploy-phase-5.md). ⏳ Still pending: real Resend templates, Sentry, rate limiting, real `siteCopy.coordinates`.
+- **Milestone E — production polish: in progress.** ✅ Refund/cancel flow done: guest self-cancel at `/booking/[id]/cancel` (token-gated), Moderate policy in `siteCopy.cancellationPolicy` (7d→100% / 2-7d→50% / <48h→0%, subtotal only), refund locked at cancel time in `Booking.refundAmount`, admin one-click Paystack refund + manual mark-refunded on `/admin/bookings`. Schema gained `cancelledAt` + `refundAmount` (run `npx prisma db push`). Notes in [docs/deploy-phase-5.md](docs/deploy-phase-5.md). ✅ Branded transactional emails: per event × per recipient HTML via `lib/services/email-templates.ts`. ✅ Abandoned-payment recovery: status endpoint, "Complete payment" button, `ResumeBookingPill`, and fresh-per-call Paystack references. ✅ Toaster moved to top-right and re-themed onto the brand palette. ⏳ Still pending: Sentry, rate limiting, real `siteCopy.coordinates`.
 
 ## Local dev quickstart
 
@@ -121,7 +128,10 @@ In production also set `CRON_SECRET` (for Vercel Cron auth) and optionally `BOOK
 Two supported paths:
 
 - **Vercel**: `vercel.json` cron + a managed Postgres (Neon). Note Hobby tier is non-commercial and its cron only runs daily (the on-read hold sweep covers the gap).
-- **Self-host (Hetzner VPS)**: `Dockerfile` + `docker-compose.yml` (app + Postgres + Caddy auto-HTTPS + a 1-minute cron sidecar). Full walkthrough incl. backups in [docs/deploy-vps.md](docs/deploy-vps.md). Schema sync via `docker compose run --rm migrate`. Secrets in `.env.production` (gitignored; template in `.env.production.example`).
+- **Self-host (Hetzner VPS, currently in use)**: `Dockerfile` + `docker-compose.yml` (app + Postgres + Caddy auto-HTTPS + a 1-minute cron sidecar). Full walkthrough incl. backups in [docs/deploy-vps.md](docs/deploy-vps.md). Schema sync via `docker compose run --rm migrate`. Secrets in `.env.production` (gitignored; template in `.env.production.example`).
+  - **Branch model**: day-to-day work lives on `core`. Production tracks `main`. To ship, open/merge a PR `core → main`, then deploy.
+  - **Deploy commands** (from local, no schema/env changes): `ssh wormhole@<host> "cd ~/camob && git pull --ff-only origin main && docker compose up -d --build"`. Verify with `docker compose exec -T cron curl -s http://app:3000/api/health` (should print `ok`). The app container is `node` only — no `wget`/`curl` inside, use the cron sidecar for in-cluster probes.
+  - **Schema/env-affecting deploys**: run `docker compose run --rm migrate` for Prisma changes, apply `prisma/sql/*.sql` manually for raw constraints, and update `.env.production` on the server before the rebuild. See the matching `docs/deploy-phase-N.md` for the change.
 
 ## House rules
 
