@@ -1,11 +1,16 @@
 import type { Prisma } from "@prisma/client";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
-import { buildBookingEmails, type NotificationEvent, type EmailContent } from "@/lib/services/email-templates";
+import { buildBookingEmails, type NotificationEvent } from "@/lib/services/email-templates";
 import type { Booking } from "@/lib/types";
 
+// Strict booking-lifecycle events keep flowing through `sendBookingNotification`;
+// adjacent agent emails (itinerary, weekly brief) widen the logger's event type
+// only — they reuse the same Resend POST + NotificationLog audit row.
+export type LogEvent = NotificationEvent | "itinerary_sent" | "weekly_brief_sent";
+
 async function logNotification(params: {
-  event: NotificationEvent;
+  event: LogEvent;
   recipient: string;
   payload: Record<string, unknown>;
 }) {
@@ -27,13 +32,25 @@ async function logNotification(params: {
   }
 }
 
-async function sendOne(params: {
-  event: NotificationEvent;
-  bookingId: string;
+// One-shot Resend send + audit. Exported for non-booking channels (itinerary,
+// weekly brief). When `resendApiKey` is unset we still log the skip so the
+// audit trail tells us *why* no email went out.
+export async function sendOneEmail(params: {
+  event: LogEvent;
   to: string;
-  audience: "guest" | "admin";
-  content: EmailContent;
-}) {
+  subject: string;
+  html: string;
+  metadata?: Record<string, unknown>;
+}): Promise<{ ok: boolean; skipped?: true }> {
+  if (!env.resendApiKey) {
+    await logNotification({
+      event: params.event,
+      recipient: params.to,
+      payload: { ...(params.metadata ?? {}), skipped: true }
+    });
+    return { ok: false, skipped: true };
+  }
+
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -43,27 +60,24 @@ async function sendOne(params: {
     body: JSON.stringify({
       from: env.notificationFromEmail,
       to: [params.to],
-      subject: params.content.subject,
-      html: params.content.html
+      subject: params.subject,
+      html: params.html
     })
   });
 
-  // Capture Resend's rejection reason so failures are debuggable from the
-  // notification log (e.g. unverified from-domain) instead of vanishing.
   const error = response.ok ? undefined : (await response.text().catch(() => "")).slice(0, 500);
 
   await logNotification({
     event: params.event,
     recipient: params.to,
     payload: {
-      bookingId: params.bookingId,
-      audience: params.audience,
+      ...(params.metadata ?? {}),
       delivered: response.ok,
       ...(error ? { error } : {})
     }
   });
 
-  return response.ok;
+  return { ok: response.ok };
 }
 
 export async function sendBookingNotification(params: {
@@ -74,26 +88,27 @@ export async function sendBookingNotification(params: {
   const { event, booking, token } = params;
   const guestEmail = booking.guest.email;
   const adminEmail = env.bookingAlertEmail;
-
-  if (!env.resendApiKey) {
-    for (const recipient of [guestEmail, adminEmail].filter(Boolean)) {
-      await logNotification({
-        event,
-        recipient,
-        payload: { bookingId: booking.id, skipped: true }
-      });
-    }
-    return { ok: false, skipped: true };
-  }
-
   const emails = buildBookingEmails({ event, booking, token, baseUrl: env.appUrl });
 
-  const guestOk = guestEmail
-    ? await sendOne({ event, bookingId: booking.id, to: guestEmail, audience: "guest", content: emails.guest })
-    : true;
-  const adminOk = adminEmail
-    ? await sendOne({ event, bookingId: booking.id, to: adminEmail, audience: "admin", content: emails.admin })
-    : true;
+  const guest = guestEmail
+    ? await sendOneEmail({
+        event,
+        to: guestEmail,
+        subject: emails.guest.subject,
+        html: emails.guest.html,
+        metadata: { bookingId: booking.id, audience: "guest" }
+      })
+    : { ok: true };
 
-  return { ok: guestOk && adminOk, skipped: false };
+  const admin = adminEmail
+    ? await sendOneEmail({
+        event,
+        to: adminEmail,
+        subject: emails.admin.subject,
+        html: emails.admin.html,
+        metadata: { bookingId: booking.id, audience: "admin" }
+      })
+    : { ok: true };
+
+  return { ok: guest.ok && admin.ok, skipped: !env.resendApiKey };
 }

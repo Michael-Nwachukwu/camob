@@ -122,3 +122,19 @@ model NotificationLog {
   payload    Json?
   createdAt  DateTime @default(now())
 }
+
+model AgentRun {
+  id            String   @id @default(cuid())
+  agent         String
+  service       String
+  inputDigest   String?
+  outputSummary String?
+  transactionId String?
+  costUsd       Decimal? @db.Decimal(10, 4)
+  status        String
+  error         String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  @@index([agent, createdAt])
+}

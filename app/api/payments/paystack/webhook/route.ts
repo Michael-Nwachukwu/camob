@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { confirmBookingPaymentAsync } from "@/lib/services/booking";
 import { getBookingByIdAsync } from "@/lib/services/repository";
 import { sendBookingNotification } from "@/lib/services/notifications";
+import { sendItineraryEmail } from "@/lib/services/itinerary-email";
 import { verifyPaystackWebhook } from "@/lib/services/payments";
 import { signBookingId } from "@/lib/booking-tokens";
 import type { PaystackWebhookEvent } from "@/lib/types";
@@ -56,11 +57,16 @@ export async function POST(request: Request) {
   }
 
   const confirmed = await confirmBookingPaymentAsync(booking.id, payload.data.reference);
+  const token = signBookingId(confirmed.id);
   await sendBookingNotification({
     event: "payment_confirmed",
     booking: confirmed,
-    token: signBookingId(confirmed.id)
+    token
   });
+  // Pre-arrival itinerary is fire-and-forget — a slow LLM call shouldn't block
+  // Paystack's 5s webhook budget, and a failure here must never bounce the
+  // confirmation pipeline. The helper has its own try/catch.
+  void sendItineraryEmail(confirmed, token);
 
   return NextResponse.json({ ok: true });
 }
