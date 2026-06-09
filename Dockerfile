@@ -39,6 +39,11 @@ COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --from=builder --chown=node:node /app/public ./public
 # Ensure the generated Prisma client + query engine are present at runtime.
 COPY --from=builder --chown=node:node /app/node_modules/.prisma ./node_modules/.prisma
+# Ship the Prisma CLI + schema in the runner so one-off migrations can be run
+# via `docker exec <container> npx prisma db push` on Dokploy / any host.
+COPY --from=builder --chown=node:node /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder --chown=node:node /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder --chown=node:node /app/prisma ./prisma
 
 USER node
 EXPOSE 3000
