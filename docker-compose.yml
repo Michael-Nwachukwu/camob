@@ -62,6 +62,25 @@ services:
             http://app:3000/api/cron/expire-holds >/dev/null 2>&1 || true
         done
 
+  # Weekly market-positioning brief — fires the LLM/agent-mail pipeline once
+  # a week. Independent sidecar so its long sleep doesn't tangle with the
+  # minute loop above.
+  cron-weekly:
+    image: curlimages/curl:8.11.1
+    restart: unless-stopped
+    env_file: .env.production
+    depends_on:
+      - app
+    entrypoint:
+      - sh
+      - -c
+      - |
+        while true; do
+          sleep 604800
+          curl -fsS -X POST -H "Authorization: Bearer $${CRON_SECRET}" \
+            http://app:3000/api/cron/weekly-brief >/dev/null 2>&1 || true
+        done
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped

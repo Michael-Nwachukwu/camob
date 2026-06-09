@@ -8,7 +8,7 @@ export type BookingEmails = { guest: EmailContent; admin: EmailContent };
 
 // ── palette (email-safe inline styles; clients don't load web fonts, so the
 // serif falls back to Georgia) ──
-const C = {
+export const C = {
   brand: "#800020",
   ink: "#211922",
   body: "#33332e",
@@ -19,8 +19,8 @@ const C = {
   hairline: "#dadad3",
   success: "#103c25"
 };
-const SERIF = "'Iowan Old Style', Palatino, 'Book Antiqua', Georgia, serif";
-const SANS = "'Avenir Next', 'Segoe UI', Helvetica, Arial, sans-serif";
+export const SERIF = "'Iowan Old Style', Palatino, 'Book Antiqua', Georgia, serif";
+export const SANS = "'Avenir Next', 'Segoe UI', Helvetica, Arial, sans-serif";
 
 function row(label: string, value: string, accent = false) {
   return `
@@ -30,7 +30,7 @@ function row(label: string, value: string, accent = false) {
     </tr>`;
 }
 
-function detailsCard(booking: Booking, apartmentName: string) {
+export function detailsCard(booking: Booking, apartmentName: string) {
   const nights = nightsBetween(booking.checkIn, booking.checkOut);
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
@@ -48,7 +48,7 @@ function detailsCard(booking: Booking, apartmentName: string) {
     </table>`;
 }
 
-function button(label: string, url: string) {
+export function button(label: string, url: string) {
   return `
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:18px 0 4px;">
       <tr><td style="border-radius:999px;background:${C.brand};">
@@ -57,7 +57,24 @@ function button(label: string, url: string) {
     </table>`;
 }
 
-function shell(opts: { preheader: string; heading: string; bodyHtml: string }) {
+export function shell(opts: {
+  preheader: string;
+  heading: string;
+  bodyHtml: string;
+  // Opt-in attribution row used by the agent-driven emails (itinerary, weekly
+  // brief). Booking lifecycle emails leave this off — they're not LLM output.
+  attribution?: { baseUrl: string };
+}) {
+  const attributionRow = opts.attribution
+    ? `<tr><td style="padding:10px 30px 18px;background:${C.surface};">
+          <a href="https://argens.xyz" style="text-decoration:none;color:${C.mute};font:11px ${SANS};letter-spacing:0.04em;display:inline-flex;align-items:center;gap:6px;">
+            <span>Powered by</span>
+            <img src="${opts.attribution.baseUrl}/argens-icon.svg" alt="" width="11" height="12" style="display:inline-block;vertical-align:middle;border:0;outline:none;"/>
+            <span style="text-decoration:underline;text-underline-offset:2px;">argens.xyz</span>
+          </a>
+        </td></tr>`
+    : "";
+
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:${C.surface};">
@@ -76,13 +93,14 @@ function shell(opts: { preheader: string; heading: string; bodyHtml: string }) {
           <p style="margin:0;font:13px/1.6 ${SANS};color:${C.mute};">${siteCopy.address}</p>
           <p style="margin:6px 0 0;font:13px/1.6 ${SANS};color:${C.mute};">Questions? <a href="${siteCopy.whatsapp}" style="color:${C.brand};">Message us on WhatsApp</a>.</p>
         </td></tr>
+        ${attributionRow}
       </table>
     </td></tr>
   </table>
 </body></html>`;
 }
 
-function para(text: string) {
+export function para(text: string) {
   return `<p style="margin:0 0 12px;font:15px/1.65 ${SANS};color:${C.body};">${text}</p>`;
 }
 

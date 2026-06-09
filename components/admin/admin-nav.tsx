@@ -10,7 +10,8 @@ const links = [
   { href: "/admin/calendar", label: "Calendar" },
   { href: "/admin/units", label: "Units" },
   { href: "/admin/payments", label: "Payments" },
-  { href: "/admin/notifications", label: "Notifications" }
+  { href: "/admin/notifications", label: "Notifications" },
+  { href: "/admin/copilot", label: "Co-pilot" }
 ];
 
 export function AdminNav() {
